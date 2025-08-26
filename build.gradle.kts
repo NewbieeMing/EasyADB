@@ -13,10 +13,10 @@ val appVersion by extra("1.0.0")
 
 repositories {
     mavenLocal()
+    mavenCentral()
     maven("https://maven.aliyun.com/repository/public/")
     maven("https://maven.aliyun.com/repository/central")
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-    mavenCentral()
     google()
 }
 

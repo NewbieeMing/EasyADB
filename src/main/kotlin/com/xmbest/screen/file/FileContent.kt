@@ -1,6 +1,7 @@
-package com.xmbest.component
+package com.xmbest.screen.file
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,13 +23,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.android.ddmlib.FileListingService
 import com.xmbest.theme.CardShape
 import com.xmbest.theme.ChipShape
 import com.xmbest.theme.TextFieldShape
 import com.xmbest.theme.purple
 
 @Composable
-fun FileContent() {
+fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -37,6 +39,9 @@ fun FileContent() {
             .padding(start = 12.dp, end = 12.dp, top = 6.dp)
             .clip(CardShape)
             .background(MaterialTheme.colors.surface)
+            .combinedClickable(onDoubleClick = {
+                viewModel.onEvent(FileUiEvent.NavigateToPath(file.fullPath))
+            }, onClick = {})
             .padding(vertical = 12.dp, horizontal = 24.dp)
     ) {
         Icon(
@@ -51,15 +56,18 @@ fun FileContent() {
         Column(modifier = Modifier.weight(1f)) {
             Row {
                 Text(
-                    text = "sdcard",
+                    text = file.name,
                     color = MaterialTheme.colors.onSurface,
                     style = TextStyle.Default.copy(fontSize = 18.sp),
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "目录",
+                    text = viewModel.getString("file.directory"),
                     color = MaterialTheme.colors.primary,
                     style = TextStyle.Default.copy(fontSize = 14.sp),
                     modifier = Modifier
@@ -69,7 +77,7 @@ fun FileContent() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "drwxr-xr-x",
+                    text = file.permissions,
                     color = purple,
                     style = TextStyle.Default.copy(fontSize = 14.sp),
                     modifier = Modifier
@@ -79,7 +87,7 @@ fun FileContent() {
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "2019-01-01 17:35",
+                    text = file.date + " " + file.time,
                     color = MaterialTheme.colors.onBackground,
                     style = TextStyle.Default.copy(fontSize = 14.sp)
                 )

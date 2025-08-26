@@ -1,5 +1,6 @@
 package com.xmbest.ddmlib
 
+import com.android.ddmlib.FileListingService
 import com.android.ddmlib.InstallReceiver
 import com.android.ddmlib.MultiLineReceiver
 import kotlinx.coroutines.CoroutineName
@@ -17,6 +18,9 @@ object DeviceOperate {
 
     private val device
         get() = DeviceManager.device.value
+
+    private val fileListingService
+        get() = FileManager.fileListingService.value
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO + CoroutineName(TAG))
 
@@ -116,6 +120,35 @@ object DeviceOperate {
             ClipboardUtil.setClipboardImage(image)
         }
         return image
+    }
+
+    /**
+     * 查找当前文件列表
+     */
+    suspend fun ls(parentPath: String) = suspendCoroutine {
+        val suspendSingle = it
+        fileListingService?.apply {
+            getChildren(
+                FileListingService.FileEntry(
+                    root,
+                    parentPath,
+                    FileListingService.TYPE_DIRECTORY,
+                    device?.isRoot == true
+                ),
+                false,
+                object : FileListingService.IListingReceiver {
+                    override fun setChildren(
+                        entry: FileListingService.FileEntry?,
+                        children: Array<out FileListingService.FileEntry>?
+                    ) {
+                        suspendSingle.resume(children?.asList() ?: emptyList())
+                    }
+
+                    override fun refreshEntry(entry: FileListingService.FileEntry?) {
+                    }
+                }
+            )
+        }
     }
 
     fun shell(command: String) = device?.executeShellCommand(command, EmptyReceiver())

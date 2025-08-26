@@ -1,4 +1,4 @@
-package com.xmbest.component
+package com.xmbest.screen.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
