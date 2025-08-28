@@ -1,14 +1,11 @@
 package com.xmbest.screen.file
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ContextMenuArea
 import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,19 +18,20 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.NoteAdd
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.xmbest.FILE_SPLIT
 import com.xmbest.ddmlib.ClipboardUtil
 import com.xmbest.theme.ButtonShape
 import com.xmbest.theme.purple
@@ -43,12 +41,19 @@ import com.xmbest.theme.purple
 fun FileHeader(viewModel: FileViewModel) {
     val uiState = viewModel.uiState.collectAsState().value
     val scrollState = rememberScrollState()
-    val pathParts = if (uiState.parentPath.isEmpty() || uiState.parentPath == "/") {
-        listOf(viewModel.getString("file.root"))
+    val rootPath = listOf(Pair(viewModel.getString("file.root"), FILE_SPLIT))
+    val pathParts = if (uiState.parentPath == FILE_SPLIT) {
+        rootPath
     } else {
-        val cleanPath = uiState.parentPath.removePrefix("/")
-        val parts = cleanPath.split("/").filter { it.isNotEmpty() }
-        listOf(viewModel.getString("file.root")) + parts
+        val cleanPath = uiState.parentPath.removePrefix(FILE_SPLIT)
+        val parts = cleanPath.split(FILE_SPLIT).filter { it.isNotEmpty() }
+        val pathPairs = mutableListOf<Pair<String, String>>()
+        var currentPath = ""
+        parts.forEachIndexed { index, part ->
+            currentPath = if (index == 0) "$FILE_SPLIT$part" else "$currentPath$FILE_SPLIT$part"
+            pathPairs.add(Pair(part, currentPath))
+        }
+        rootPath + pathPairs
     }
 
     Column(
@@ -66,23 +71,12 @@ fun FileHeader(viewModel: FileViewModel) {
         ) {
             pathParts.forEachIndexed { index, part ->
                 val isLast = index == pathParts.size - 1
-
-                // 构建点击路径
-                val clickPath = when {
-                    part == viewModel.getString("file.root") -> ""
-                    else -> {
-                        // 找到当前部分在原始路径中的位置，构建到该位置的完整路径
-                        val partIndex = pathParts.indexOf(part)
-                        if (partIndex <= 0) ""
-                        else "/" + pathParts.drop(1).take(partIndex).joinToString("/")
-                    }
-                }
-
+                val clickPath = part.second
                 if (index > 0) {
-                    Text(
-                        text = " > ",
-                        color = MaterialTheme.colors.onBackground,
-                        fontSize = 14.sp
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "",
+                        tint = MaterialTheme.colors.onBackground
                     )
                 }
 
@@ -91,61 +85,37 @@ fun FileHeader(viewModel: FileViewModel) {
                     items = {
                         listOf(
                             ContextMenuItem(viewModel.getString("file.copyPath")) {
-                                ClipboardUtil.setSysClipboardText(clickPath.ifEmpty { "/" })
+                                ClipboardUtil.setSysClipboardText(clickPath.ifEmpty { FILE_SPLIT })
                             }
                         )
                     }
                 ) {
-                    if (part == viewModel.getString("file.root")) {
-                        // 根目录使用FunctionButton样式并添加手机图标
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier
-                                .clip(ButtonShape)
-                                .background(
-                                    if (isLast) MaterialTheme.colors.primary
-                                    else purple.copy(0.2f)
-                                )
-                                .clickable {
-                                    viewModel.onEvent(FileUiEvent.NavigateToPath(clickPath))
-                                }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(ButtonShape)
+                            .background(
+                                if (isLast) MaterialTheme.colors.primary
+                                else purple.copy(0.2f)
+                            )
+                            .clickable {
+                                viewModel.onEvent(FileUiEvent.NavigateToPath(clickPath))
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        if (index == 0) {
                             Icon(
-                                Icons.Default.Android,
-                                contentDescription = part,
+                                Icons.Default.PhoneAndroid,
+                                contentDescription = part.second,
                                 tint = if (isLast) MaterialTheme.colors.onPrimary else MaterialTheme.colors.primary,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Text(
-                                text = part,
-                                color = if (isLast) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface,
-                                fontSize = 14.sp
-                            )
                         }
-                    } else {
-                        // 其他路径部分只使用文字
                         Text(
-                            text = part,
-                            color =
-                                if (isLast) MaterialTheme.colors.onPrimary
-                                else MaterialTheme.colors.onBackground,
-                            fontSize = 14.sp,
-                            modifier = Modifier
-                                .clip(ButtonShape)
-                                .background(
-                                    if (isLast) MaterialTheme.colors.primary
-                                    else purple.copy(0.2f)
-                                )
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onTap = { offset ->
-                                            viewModel.onEvent(FileUiEvent.NavigateToPath(clickPath))
-                                        }
-                                    )
-                                }
+                            text = part.first,
+                            color = if (isLast) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface,
+                            fontSize = 14.sp
                         )
                     }
                 }
@@ -162,19 +132,18 @@ fun FileHeader(viewModel: FileViewModel) {
         ) {
             // 返回按钮
             AnimatedVisibility(
-                visible = uiState.parentPath.isNotEmpty() && uiState.parentPath != "/",
-                enter = fadeIn(),
-                exit = fadeOut()
+                visible = uiState.parentPath != FILE_SPLIT
             ) {
                 FunctionButton(
                     icon = Icons.Default.ArrowBack,
                     text = viewModel.getString("file.back"),
                     onClick = {
-                        val parentPath = if (uiState.parentPath.contains("/")) {
-                            uiState.parentPath.substringBeforeLast("/")
-                        } else {
-                            ""
-                        }
+                        val parentPath =
+                            if (uiState.parentPath.contains(FILE_SPLIT) && uiState.parentPath.lastIndexOf(FILE_SPLIT) > 0) {
+                                uiState.parentPath.substringBeforeLast(FILE_SPLIT)
+                            } else {
+                                FILE_SPLIT
+                            }
                         viewModel.onEvent(FileUiEvent.NavigateToPath(parentPath))
                     }
                 )

@@ -13,9 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,47 +30,58 @@ import com.xmbest.theme.purple
 
 @Composable
 fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
+    val uiState = viewModel.uiState.collectAsState().value
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 6.dp)
-            .clip(CardShape)
-            .background(MaterialTheme.colors.surface)
+        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 6.dp)
+            .clip(CardShape).background(MaterialTheme.colors.surface)
             .combinedClickable(onDoubleClick = {
-                viewModel.onEvent(FileUiEvent.NavigateToPath(file.fullPath))
-            }, onClick = {})
-            .padding(vertical = 12.dp, horizontal = 24.dp)
+                if (file.isDirectory) {
+                    viewModel.onEvent(
+                        FileUiEvent.NavigateToPath(
+                            viewModel.calculatePath(
+                                uiState.parentPath,
+                                file.name
+                            )
+                        )
+                    )
+                }
+            }, onClick = {}).padding(vertical = 6.dp, horizontal = 12.dp)
     ) {
+        val fileTypeInfo = viewModel.getFileTypeInfo(file.type)
         Icon(
-            imageVector = Icons.Default.Folder,
+            imageVector = fileTypeInfo.icon,
             contentDescription = "",
             tint = Color.White,
-            modifier = Modifier
-                .clip(ChipShape)
-                .background(MaterialTheme.colors.primary)
+            modifier = Modifier.clip(ChipShape).background(MaterialTheme.colors.primary)
                 .padding(8.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
-            Row {
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = file.name,
                     color = MaterialTheme.colors.onSurface,
                     style = TextStyle.Default.copy(fontSize = 18.sp),
                 )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = viewModel.byte2Gb(file.size),
+                    color = MaterialTheme.colors.onSurface.copy(0.6f),
+                    style = TextStyle.Default.copy(fontSize = 12.sp),
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp, vertical = 2.dp)
+                )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = viewModel.getString("file.directory"),
+                    text = fileTypeInfo.text,
                     color = MaterialTheme.colors.primary,
                     style = TextStyle.Default.copy(fontSize = 14.sp),
-                    modifier = Modifier
-                        .clip(TextFieldShape)
+                    modifier = Modifier.clip(TextFieldShape)
                         .background(MaterialTheme.colors.primary.copy(alpha = 0.3f))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
@@ -80,9 +90,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
                     text = file.permissions,
                     color = purple,
                     style = TextStyle.Default.copy(fontSize = 14.sp),
-                    modifier = Modifier
-                        .clip(TextFieldShape)
-                        .background(purple.copy(alpha = 0.3f))
+                    modifier = Modifier.clip(TextFieldShape).background(purple.copy(alpha = 0.3f))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))

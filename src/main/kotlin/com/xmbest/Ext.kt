@@ -11,6 +11,11 @@ val adb = Pair("adb", if (hostOs.isWindows) "adb.exe" else "adb")
 val cfg = Pair("config", "config.json")
 
 /**
+ * 文件分隔符
+ */
+const val FILE_SPLIT = "/"
+
+/**
  * 当前程序存储目录
  */
 val appStorageAbsolutePath: String =

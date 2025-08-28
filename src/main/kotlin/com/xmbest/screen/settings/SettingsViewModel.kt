@@ -61,7 +61,7 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
     }
 
     private fun changeTheme(newTheme: Theme) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.Default) {
             Config.changeTheme(newTheme)
         }
     }
