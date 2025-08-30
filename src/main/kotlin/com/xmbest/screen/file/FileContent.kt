@@ -26,7 +26,6 @@ import com.android.ddmlib.FileListingService
 import com.xmbest.theme.CardShape
 import com.xmbest.theme.ChipShape
 import com.xmbest.theme.TextFieldShape
-import com.xmbest.theme.purple
 
 @Composable
 fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
@@ -34,7 +33,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, top = 6.dp)
+        modifier = Modifier.fillMaxWidth().padding(end = 12.dp, bottom = 6.dp)
             .clip(CardShape).background(MaterialTheme.colors.surface)
             .combinedClickable(onDoubleClick = {
                 if (file.isDirectory) {
@@ -79,18 +78,18 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
             ) {
                 Text(
                     text = fileTypeInfo.text,
-                    color = MaterialTheme.colors.primary,
+                    color = MaterialTheme.colors.onPrimary,
                     style = TextStyle.Default.copy(fontSize = 14.sp),
                     modifier = Modifier.clip(TextFieldShape)
-                        .background(MaterialTheme.colors.primary.copy(alpha = 0.3f))
+                        .background(MaterialTheme.colors.primary)
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = file.permissions,
-                    color = purple,
+                    color = MaterialTheme.colors.onSecondary,
                     style = TextStyle.Default.copy(fontSize = 14.sp),
-                    modifier = Modifier.clip(TextFieldShape).background(purple.copy(alpha = 0.3f))
+                    modifier = Modifier.clip(TextFieldShape).background(MaterialTheme.colors.secondary)
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))

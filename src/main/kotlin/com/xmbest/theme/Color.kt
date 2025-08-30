@@ -25,7 +25,7 @@ val blue_onSurface = Color(0xFF1B3041)
 val classic_primary = blue_primary
 val classic_onPrimary = blue_onPrimary
 val classic_second = Color.White
-val classic_onSecond = classic_onPrimary
+val classic_onSecond = Color.Black
 val classic_background = Color(0xFFEFF5F9)
 val classic_onBackground = Color(0xEE626465)
 
@@ -38,3 +38,10 @@ val night_onSecond = Color(0xCCEBE5E0)
 val night_background = Color(0xFF202021)
 val night_onBackground = Color(0x99EBE5E0)
 
+/** 紫色主题*/
+val purple_primary = Color(0xFF9563b5)
+val purple_onPrimary = Color.White
+val purple_background = Color(0xFFDAC2E8)
+val purple_onBackground = Color(0xFF2D1B3E)
+val purple_surface = Color(0xFFE9E2F3)
+val purple_onSurface = Color(0xFF2D1B3E)

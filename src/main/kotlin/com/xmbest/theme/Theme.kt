@@ -35,3 +35,14 @@ val Night = darkColors(
     background = night_background,
     onBackground = night_onBackground
 )
+
+val Purple = lightColors(
+    primary = purple_primary,
+    onPrimary = purple_onPrimary,
+    secondary = purple_background,
+    onSecondary = purple_onBackground,
+    surface = purple_surface,
+    onSurface = purple_onSurface,
+    background = purple_background,
+    onBackground = purple_onBackground
+)

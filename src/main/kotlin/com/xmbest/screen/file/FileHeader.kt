@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.sp
 import com.xmbest.FILE_SPLIT
 import com.xmbest.ddmlib.ClipboardUtil
 import com.xmbest.theme.ButtonShape
-import com.xmbest.theme.purple
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -97,7 +96,7 @@ fun FileHeader(viewModel: FileViewModel) {
                             .clip(ButtonShape)
                             .background(
                                 if (isLast) MaterialTheme.colors.primary
-                                else purple.copy(0.2f)
+                                else MaterialTheme.colors.surface
                             )
                             .clickable {
                                 viewModel.onEvent(FileUiEvent.NavigateToPath(clickPath))

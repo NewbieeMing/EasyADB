@@ -62,6 +62,7 @@ class FileViewModel : BaseViewModel<FileUiState>() {
     }
 
     private suspend fun refreshCurrentDirectory() {
+        Log.d(TAG, "refreshCurrentDirectory path = ${uiState.value.parentPath}")
         _uiState.value =
             _uiState.value.copy(
                 children = DeviceOperate.ls(uiState.value.parentPath)

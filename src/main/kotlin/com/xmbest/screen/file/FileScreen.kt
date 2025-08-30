@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -16,6 +17,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun FileScreen(viewModel: FileViewModel = viewModel()) {
     val scrollState = rememberScrollState()
     val uiState = viewModel.uiState.collectAsState().value
+    LaunchedEffect(UInt) {
+        viewModel.onEvent(FileUiEvent.Refresh)
+    }
     LazyColumn(
         modifier = Modifier
             .padding(bottom = 6.dp)
