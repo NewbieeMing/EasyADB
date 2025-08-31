@@ -5,19 +5,14 @@ import com.xmbest.adb
 import com.xmbest.appStorageAbsolutePath
 import com.xmbest.cfg
 import com.xmbest.ddmlib.DeviceManager
+import com.xmbest.exec
 import com.xmbest.model.Environment
-import com.xmbest.pull
-import com.xmbest.push
 import io.github.vinceglb.filekit.FileKit
-import org.jetbrains.skiko.hostOs
 import java.io.File
 
 object InitModule {
     private val fileList = buildList {
-        addAll(listOf(adb, cfg))
-        if (!hostOs.isWindows) {
-            addAll(listOf(pull, push))
-        }
+        addAll(listOf(adb, cfg, exec))
     }
     private val path = appStorageAbsolutePath
 

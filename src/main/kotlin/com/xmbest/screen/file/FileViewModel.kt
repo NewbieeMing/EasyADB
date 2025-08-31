@@ -12,7 +12,7 @@ import com.xmbest.base.BaseViewModel
 import com.xmbest.ddmlib.DeviceOperate
 import com.xmbest.ddmlib.FileManager
 import com.xmbest.ddmlib.Log
-import com.xmbest.push
+import com.xmbest.exec
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.openFilePicker
@@ -25,6 +25,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.skiko.hostOs
 import java.io.File
 import java.text.DecimalFormat
+import kotlin.text.any
 
 class FileViewModel : BaseViewModel<FileUiState>() {
 
@@ -55,8 +56,9 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 is FileUiEvent.Refresh -> refreshCurrentDirectory()
                 is FileUiEvent.StartDrag -> handleStartDrag(event.files)
                 is FileUiEvent.DragEnd -> handleDragEnd()
-                is FileUiEvent.UploadFiles -> handleUploadFiles(event.files, event.remotePath)
+                is FileUiEvent.UploadFiles -> handleUploadFiles(event.files, uiState.value.parentPath)
                 is FileUiEvent.Imported -> handleImported()
+                is FileUiEvent.Toast -> handleToast(event.message)
             }
         }
 
@@ -196,7 +198,7 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 remotePath = remotePath,
                 isWindows = hostOs.isWindows,
                 isMacOs = hostOs.isMacOS,
-                file = File(appStorageAbsolutePath, push.second)
+                file = File(appStorageAbsolutePath, exec.second)
             )
         }
         refreshCurrentDirectory()
@@ -204,8 +206,21 @@ class FileViewModel : BaseViewModel<FileUiState>() {
 
     private suspend fun handleImported() {
         val files = FileKit.openFilePicker(mode = FileKitMode.Multiple())
-        files?.map { it.path }?.let {
-            handleUploadFiles(it, uiState.value.parentPath)
+        // 检查是否包含中文路径
+        val chinesePathFiles = files?.map { it.path }?.filter { path ->
+            path.any { char -> char.toString().matches(Regex("[\u4e00-\u9fa5]")) }
         }
+
+        if (chinesePathFiles?.isNotEmpty() == true) {
+            handleToast(getString("file.drag.chinesePathError"))
+        } else {
+            files?.map { it.path }?.let {
+                handleUploadFiles(it, uiState.value.parentPath)
+            }
+        }
+    }
+
+    private fun handleToast(message: String) {
+        _uiState.value = _uiState.value.copy(toast = message)
     }
 }

@@ -32,30 +32,28 @@ object DeviceManager {
      */
     val devices = _devices.asStateFlow()
 
+    private val listener = object :
+        AndroidDebugBridge.IDeviceChangeListener {
+        override fun deviceConnected(device: IDevice?) {
+            Log.d(TAG, "deviceConnected device.name: ${device?.name}")
+            refreshDevices()
+        }
+
+        override fun deviceDisconnected(device: IDevice?) {
+            Log.d(TAG, "deviceDisconnected device.name: ${device?.name}")
+            refreshDevices()
+        }
+
+        override fun deviceChanged(
+            device: IDevice?,
+            changeMask: Int
+        ) {
+            Log.d(TAG, "deviceChanged device.name: ${device?.name},changeMask: $changeMask")
+            refreshDevices()
+        }
+    }
+
     init {
-        AndroidDebugBridge.terminate()
-        AndroidDebugBridge.init(false)
-        AndroidDebugBridge.addDeviceChangeListener(object :
-            AndroidDebugBridge.IDeviceChangeListener {
-            override fun deviceConnected(device: IDevice?) {
-                Log.d(TAG, "deviceConnected device.name: ${device?.name}")
-                refreshDevices()
-            }
-
-            override fun deviceDisconnected(device: IDevice?) {
-                Log.d(TAG, "deviceDisconnected device.name: ${device?.name}")
-                refreshDevices()
-            }
-
-            override fun deviceChanged(
-                device: IDevice?,
-                changeMask: Int
-            ) {
-                Log.d(TAG, "deviceChanged device.name: ${device?.name},changeMask: $changeMask")
-                refreshDevices()
-            }
-        })
-
         coroutineScope.launch {
             devices.collectLatest {
                 if (it.isEmpty()) {
@@ -73,6 +71,9 @@ object DeviceManager {
      */
     fun initialize(path: String) {
         _adbPath.update { path }
+        AndroidDebugBridge.terminate()
+        AndroidDebugBridge.addDeviceChangeListener(listener)
+        AndroidDebugBridge.init(false)
         AndroidDebugBridge.createBridge(
             adbPath.value,
             true,

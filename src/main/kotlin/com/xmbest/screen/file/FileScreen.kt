@@ -6,18 +6,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -28,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.xmbest.LocalSnackbarHostState
 import com.xmbest.theme.CardShape
 import java.awt.datatransfer.DataFlavor
 
@@ -36,12 +32,21 @@ import java.awt.datatransfer.DataFlavor
 fun FileScreen(viewModel: FileViewModel = viewModel()) {
     val scrollState = rememberScrollState()
     val uiState = viewModel.uiState.collectAsState().value
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = LocalSnackbarHostState.current
 
     LaunchedEffect(UInt) {
         viewModel.onEvent(FileUiEvent.Refresh)
     }
 
-    val dragAndDropTarget = remember {
+    LaunchedEffect(uiState.toast) {
+        if (uiState.toast.isNotEmpty()) {
+            snackbarHostState.showSnackbar(uiState.toast, viewModel.getString("button.confirm"))
+            viewModel.onEvent(FileUiEvent.Toast(""))
+        }
+    }
+
+    val dragAndDropTarget = remember(snackbarHostState, coroutineScope) {
         object : DragAndDropTarget {
             override fun onStarted(event: DragAndDropEvent) {
                 val files = extractFilesFromEvent(event)
@@ -57,7 +62,17 @@ fun FileScreen(viewModel: FileViewModel = viewModel()) {
             override fun onDrop(event: DragAndDropEvent): Boolean {
                 val files = extractFilesFromEvent(event)
                 if (files.isNotEmpty()) {
-                    viewModel.onEvent(FileUiEvent.UploadFiles(files, uiState.parentPath))
+                    // 检查是否包含中文路径
+                    val chinesePathFiles = files.filter { path ->
+                        path.any { char -> char.toString().matches(Regex("[\u4e00-\u9fa5]")) }
+                    }
+
+                    if (chinesePathFiles.isNotEmpty()) {
+                        viewModel.onEvent(FileUiEvent.Toast(viewModel.getString("file.drag.chinesePathError")))
+                        return false
+                    }
+
+                    viewModel.onEvent(FileUiEvent.UploadFiles(files))
                     return true
                 }
                 return false
@@ -88,6 +103,7 @@ fun FileScreen(viewModel: FileViewModel = viewModel()) {
         ) {
             stickyHeader {
                 FileHeader(viewModel)
+                Spacer(modifier = Modifier.height(6.dp))
             }
             items(uiState.children) {
                 FileContent(it, viewModel)

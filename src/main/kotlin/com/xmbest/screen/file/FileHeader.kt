@@ -24,21 +24,21 @@ import com.xmbest.theme.ButtonShape
  */
 private fun buildPathParts(parentPath: String, rootLabel: String): List<Pair<String, String>> {
     val rootPath = listOf(Pair(rootLabel, FILE_SPLIT))
-    
+
     if (parentPath == FILE_SPLIT) {
         return rootPath
     }
-    
+
     val cleanPath = parentPath.removePrefix(FILE_SPLIT)
     val parts = cleanPath.split(FILE_SPLIT).filter { it.isNotEmpty() }
     val pathPairs = mutableListOf<Pair<String, String>>()
-    
+
     var currentPath = ""
     parts.forEachIndexed { index, part ->
         currentPath = if (index == 0) "$FILE_SPLIT$part" else "$currentPath$FILE_SPLIT$part"
         pathPairs.add(Pair(part, currentPath))
     }
-    
+
     return rootPath + pathPairs
 }
 
@@ -75,10 +75,12 @@ fun FileHeader(viewModel: FileViewModel) {
         FunctionButtonsRow(
             showBackButton = uiState.parentPath != FILE_SPLIT,
             onBackClick = { viewModel.onEvent(FileUiEvent.NavigateToPath(getParentPath(uiState.parentPath))) },
+            onRefreshClick = { viewModel.onEvent(FileUiEvent.Refresh) },
             onNewFolderClick = { /* TODO: 实现创建文件夹功能 */ },
             onNewFileClick = { /* TODO: 实现创建文件功能 */ },
             onImportClick = { viewModel.onEvent(FileUiEvent.Imported) },
             backLabel = viewModel.getString("file.back"),
+            refreshLabel = viewModel.getString("file.refresh"),
             newFolderLabel = viewModel.getString("file.newFolder"),
             newFileLabel = viewModel.getString("file.newFile"),
             importLabel = viewModel.getString("file.importFile")
@@ -95,7 +97,7 @@ private fun BreadcrumbNavigation(
     copyPathLabel: String
 ) {
     val scrollState = rememberScrollState()
-    
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -106,7 +108,7 @@ private fun BreadcrumbNavigation(
         pathParts.forEachIndexed { index, part ->
             val isLast = index == pathParts.size - 1
             val clickPath = part.second
-            
+
             if (index > 0) {
                 Icon(
                     Icons.Default.ChevronRight,
@@ -174,10 +176,12 @@ private fun PathBreadcrumb(
 private fun FunctionButtonsRow(
     showBackButton: Boolean,
     onBackClick: () -> Unit,
+    onRefreshClick: () -> Unit,
     onNewFolderClick: () -> Unit,
     onNewFileClick: () -> Unit,
     onImportClick: () -> Unit,
     backLabel: String,
+    refreshLabel: String,
     newFolderLabel: String,
     newFileLabel: String,
     importLabel: String
@@ -196,6 +200,12 @@ private fun FunctionButtonsRow(
                 onClick = onBackClick
             )
         }
+
+        FunctionButton(
+            icon = Icons.Default.Refresh,
+            text = refreshLabel,
+            onClick = onRefreshClick
+        )
 
         FunctionButton(
             icon = Icons.Default.CreateNewFolder,

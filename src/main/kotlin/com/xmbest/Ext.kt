@@ -1,5 +1,8 @@
 package com.xmbest
 
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import org.jetbrains.skiko.hostOs
 import java.io.File
 
@@ -9,8 +12,7 @@ import java.io.File
  */
 val adb = Pair("adb", if (hostOs.isWindows) "adb.exe" else "adb")
 val cfg = Pair("config", "config.json")
-val push = Pair("sh", "push.sh")
-val pull = Pair("sh", "pull.sh")
+val exec = Pair("sh", if (hostOs.isWindows) "exec.bat" else "exec.sh")
 
 /**
  * 文件分隔符
@@ -28,3 +30,8 @@ val appStorageAbsolutePath: String =
  */
 val programAdbAbsolutePath: String =
     File(appStorageAbsolutePath, adb.second).absolutePath
+
+// 创建LocalSnackbarHostState，类似于LocalContext.current的使用方式
+val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {
+    error("No SnackbarHostState provided")
+}

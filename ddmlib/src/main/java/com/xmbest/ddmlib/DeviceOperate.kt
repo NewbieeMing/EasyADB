@@ -97,13 +97,23 @@ object DeviceOperate {
             Log.d(TAG, "Original ADB command: $adbCommand")
             var command = adbCommand
             if (isWindows) {
+                val commands = mutableListOf<String>()
+                commands.add("@echo off")
+                commands.add("echo Starting file transfer...")
+                // gbk编码
+                commands.add("chcp 65001")
+                commands.add(adbCommand)
+                commands.add("echo.")
+                commands.add("echo Executing: $adbCommand")
+                commands.add("echo Window will close in $CMD_CLOSE_TIMEOUT seconds...")
+                commands.add("timeout /t $CMD_CLOSE_TIMEOUT /nobreak > nul")
+
+                file.writeText(commands.joinToString("\r\n"))
+
                 command =
-                    "cmd.exe /c start cmd.exe /C \"echo Executing: $adbCommand && $adbCommand && echo. && echo Command completed. Window will close in 3 seconds... && timeout /t $CMD_CLOSE_TIMEOUT /nobreak > nul\""
+                    "cmd.exe /c start cmd.exe /C ${file.absolutePath}"
             } else if (isMacOs) {
-                writeShell(
-                    file,
-                    adbCommand
-                )
+                file.writeText(adbCommand)
                 command = "open -b com.apple.terminal ${file.absolutePath}"
             }
             CmdUtil.run(command)
