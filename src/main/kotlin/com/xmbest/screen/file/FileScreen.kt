@@ -24,119 +24,129 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xmbest.LocalSnackbarHostState
+import com.xmbest.ddmlib.DeviceManager
+import com.xmbest.screen.empty.EmptyScreen
 import com.xmbest.theme.CardShape
 import java.awt.datatransfer.DataFlavor
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun FileScreen(viewModel: FileViewModel = viewModel()) {
-    val scrollState = rememberScrollState()
-    val uiState = viewModel.uiState.collectAsState().value
-    val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = LocalSnackbarHostState.current
 
-    LaunchedEffect(UInt) {
-        viewModel.onEvent(FileUiEvent.Refresh)
-    }
+    val device = DeviceManager.device.collectAsState().value
 
-    LaunchedEffect(uiState.toast) {
-        if (uiState.toast.isNotEmpty()) {
-            snackbarHostState.showSnackbar(uiState.toast, viewModel.getString("button.confirm"))
-            viewModel.onEvent(FileUiEvent.Toast(""))
+    if (device == null) {
+        EmptyScreen()
+    } else {
+
+        val scrollState = rememberScrollState()
+        val uiState = viewModel.uiState.collectAsState().value
+        val coroutineScope = rememberCoroutineScope()
+        val snackbarHostState = LocalSnackbarHostState.current
+
+        LaunchedEffect(UInt) {
+            viewModel.onEvent(FileUiEvent.Refresh)
         }
-    }
 
-    val dragAndDropTarget = remember(snackbarHostState, coroutineScope) {
-        object : DragAndDropTarget {
-            override fun onStarted(event: DragAndDropEvent) {
-                val files = extractFilesFromEvent(event)
-                if (files.isNotEmpty()) {
-                    viewModel.onEvent(FileUiEvent.StartDrag(files))
-                }
-            }
-
-            override fun onEnded(event: DragAndDropEvent) {
-                viewModel.onEvent(FileUiEvent.DragEnd)
-            }
-
-            override fun onDrop(event: DragAndDropEvent): Boolean {
-                val files = extractFilesFromEvent(event)
-                if (files.isNotEmpty()) {
-                    // 检查是否包含中文路径
-                    val chinesePathFiles = files.filter { path ->
-                        path.any { char -> char.toString().matches(Regex("[\u4e00-\u9fa5]")) }
-                    }
-
-                    if (chinesePathFiles.isNotEmpty()) {
-                        viewModel.onEvent(FileUiEvent.Toast(viewModel.getString("file.drag.chinesePathError")))
-                        return false
-                    }
-
-                    viewModel.onEvent(FileUiEvent.UploadFiles(files))
-                    return true
-                }
-                return false
+        LaunchedEffect(uiState.toast) {
+            if (uiState.toast.isNotEmpty()) {
+                snackbarHostState.showSnackbar(uiState.toast, viewModel.getString("button.confirm"))
+                viewModel.onEvent(FileUiEvent.Toast(""))
             }
         }
-    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .dragAndDropTarget(
-                shouldStartDragAndDrop = { event ->
-                    try {
-                        val transferable = event.awtTransferable
-                        transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
-                                transferable.isDataFlavorSupported(DataFlavor.stringFlavor)
-                    } catch (_: Exception) {
-                        false
+        val dragAndDropTarget = remember(snackbarHostState, coroutineScope) {
+            object : DragAndDropTarget {
+                override fun onStarted(event: DragAndDropEvent) {
+                    val files = extractFilesFromEvent(event)
+                    if (files.isNotEmpty()) {
+                        viewModel.onEvent(FileUiEvent.StartDrag(files))
                     }
-                },
-                target = dragAndDropTarget
-            )
-    ) {
-        LazyColumn(
+                }
+
+                override fun onEnded(event: DragAndDropEvent) {
+                    viewModel.onEvent(FileUiEvent.DragEnd)
+                }
+
+                override fun onDrop(event: DragAndDropEvent): Boolean {
+                    val files = extractFilesFromEvent(event)
+                    if (files.isNotEmpty()) {
+                        // 检查是否包含中文路径
+                        val chinesePathFiles = files.filter { path ->
+                            path.any { char -> char.toString().matches(Regex("[\u4e00-\u9fa5]")) }
+                        }
+
+                        if (chinesePathFiles.isNotEmpty()) {
+                            viewModel.onEvent(FileUiEvent.Toast(viewModel.getString("file.drag.chinesePathError")))
+                            return false
+                        }
+
+                        viewModel.onEvent(FileUiEvent.UploadFiles(files))
+                        return true
+                    }
+                    return false
+                }
+            }
+        }
+
+        Box(
             modifier = Modifier
-                .padding(bottom = 6.dp)
-                .scrollable(scrollState, Orientation.Vertical)
+                .fillMaxSize()
+                .dragAndDropTarget(
+                    shouldStartDragAndDrop = { event ->
+                        try {
+                            val transferable = event.awtTransferable
+                            transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
+                                    transferable.isDataFlavorSupported(DataFlavor.stringFlavor)
+                        } catch (_: Exception) {
+                            false
+                        }
+                    },
+                    target = dragAndDropTarget
+                )
         ) {
-            stickyHeader {
-                FileHeader(viewModel)
-                Spacer(modifier = Modifier.height(6.dp))
-            }
-            items(uiState.children) {
-                FileContent(it, viewModel)
-            }
-        }
-
-        // 拖拽提示UI
-        if (uiState.isDragging) {
-            Box(
+            LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
-                    .padding(3.dp) // 添加内边距确保边框完全显示
+                    .padding(bottom = 6.dp)
+                    .scrollable(scrollState, Orientation.Vertical)
             ) {
+                stickyHeader {
+                    FileHeader(viewModel)
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+                items(uiState.children) {
+                    FileContent(it, viewModel)
+                }
+            }
+
+            // 拖拽提示UI
+            if (uiState.isDragging) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .border(
-                            width = 2.dp,
-                            color = MaterialTheme.colors.primary,
-                            shape = CardShape
-                        ),
-                    contentAlignment = Alignment.Center
+                        .background(MaterialTheme.colors.primary.copy(alpha = 0.1f))
+                        .padding(3.dp) // 添加内边距确保边框完全显示
                 ) {
-                    Text(
-                        text = uiState.uploadTipText,
-                        color = MaterialTheme.colors.primary,
-                        fontSize = 18.sp,
+                    Box(
                         modifier = Modifier
-                            .clip(CardShape)
-                            .background(MaterialTheme.colors.surface.copy(alpha = 0.9f))
-                            .padding(16.dp)
-                    )
+                            .fillMaxSize()
+                            .border(
+                                width = 2.dp,
+                                color = MaterialTheme.colors.primary,
+                                shape = CardShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = uiState.uploadTipText,
+                            color = MaterialTheme.colors.primary,
+                            fontSize = 18.sp,
+                            modifier = Modifier
+                                .clip(CardShape)
+                                .background(MaterialTheme.colors.surface.copy(alpha = 0.9f))
+                                .padding(16.dp)
+                        )
+                    }
                 }
             }
         }

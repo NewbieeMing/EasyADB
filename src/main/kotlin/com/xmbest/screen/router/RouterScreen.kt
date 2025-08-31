@@ -2,6 +2,11 @@
 
 package com.xmbest.screen.router
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.EaseInCubic
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,7 +30,7 @@ import com.xmbest.LocalSnackbarHostState
 fun RouterScreen(viewModel: RouterViewModule = viewModel()) {
     val uiState = viewModel.uiState.collectAsState().value
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -108,10 +113,39 @@ fun Left(
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun Right(modifier: Modifier, uiState: RouterUiState, viewModel: RouterViewModule = viewModel()) {
     Column(modifier.background(color = MaterialTheme.colors.secondary)) {
-        viewModel.pageList[uiState.index].comp()
+        AnimatedContent(
+            targetState = uiState.index,
+            transitionSpec = {
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> fullWidth },
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    )
+                ) + fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 250,
+                        delayMillis = 50
+                    )
+                ) with slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> -fullWidth / 3 },
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        easing = EaseInCubic
+                    )
+                ) + fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 200
+                    )
+                )
+            }
+        ) { targetIndex ->
+            viewModel.pageList[targetIndex].comp()
+        }
     }
 }
 
