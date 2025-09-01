@@ -15,6 +15,7 @@ import com.xmbest.ddmlib.Log
 import com.xmbest.exec
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
+import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +58,7 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 is FileUiEvent.StartDrag -> handleStartDrag(event.files)
                 is FileUiEvent.DragEnd -> handleDragEnd()
                 is FileUiEvent.UploadFiles -> handleUploadFiles(event.files, uiState.value.parentPath)
+                is FileUiEvent.DownloadFiles -> handleDownloadFiles(event.files)
                 is FileUiEvent.Imported -> handleImported()
                 is FileUiEvent.Toast -> handleToast(event.message)
             }
@@ -202,6 +204,19 @@ class FileViewModel : BaseViewModel<FileUiState>() {
             )
         }
         refreshCurrentDirectory()
+    }
+
+    private suspend fun handleDownloadFiles(files: List<FileListingService.FileEntry>) {
+        withContext(Dispatchers.IO) {
+            val localPath = FileKit.openDirectoryPicker(getString("file.saveTo"))?.path ?: return@withContext
+            DeviceOperate.pull(
+                files = files.map { it.fullPath },
+                localPath = localPath,
+                isWindows = hostOs.isWindows,
+                isMacOs = hostOs.isMacOS,
+                file = File(appStorageAbsolutePath, exec.second)
+            )
+        }
     }
 
     private suspend fun handleImported() {

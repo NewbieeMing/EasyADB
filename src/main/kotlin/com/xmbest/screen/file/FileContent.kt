@@ -2,19 +2,20 @@ package com.xmbest.screen.file
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,14 +28,19 @@ import com.xmbest.theme.CardShape
 import com.xmbest.theme.ChipShape
 import com.xmbest.theme.TextFieldShape
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
     val uiState = viewModel.uiState.collectAsState().value
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
         modifier = Modifier.fillMaxWidth().padding(start = 6.dp, end = 6.dp, bottom = 6.dp)
             .clip(CardShape).background(MaterialTheme.colors.surface)
+            .hoverable(interactionSource)
             .combinedClickable(onDoubleClick = {
                 if (file.isDirectory) {
                     viewModel.onEvent(
@@ -98,6 +104,77 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
                     color = MaterialTheme.colors.onBackground,
                     style = TextStyle.Default.copy(fontSize = 14.sp)
                 )
+            }
+        }
+
+        // 悬浮时显示的操作按钮
+        if (isHovered) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 重命名按钮
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { Text(viewModel.getString("file.rename")) },
+                    state = rememberTooltipState()
+                ) {
+                    IconButton(
+                        onClick = {
+                            // TODO: 实现重命名功能
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = viewModel.getString("file.rename"),
+                            tint = MaterialTheme.colors.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // 导出按钮
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { Text(viewModel.getString("file.export")) },
+                    state = rememberTooltipState()
+                ) {
+                    IconButton(
+                        onClick = {
+                            viewModel.onEvent(FileUiEvent.DownloadFiles(listOf(file)))
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = viewModel.getString("file.export"),
+                            tint = MaterialTheme.colors.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // 删除按钮
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { Text(viewModel.getString("file.delete")) },
+                    state = rememberTooltipState()
+                ) {
+                    IconButton(
+                        onClick = {
+                            // TODO: 实现删除功能
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = viewModel.getString("file.delete"),
+                            tint = MaterialTheme.colors.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
     }

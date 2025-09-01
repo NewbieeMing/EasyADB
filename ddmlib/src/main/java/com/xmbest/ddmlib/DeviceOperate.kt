@@ -76,10 +76,57 @@ object DeviceOperate {
     }
 
     /**
+     * 执行文件传输操作的通用方法
+     * @param operation 操作类型（push或pull）
+     * @param files 文件列表
+     * @param targetPath 目标路径
+     * @param isWindows 是否windows平台
+     * @param isMacOs 是否macOS平台
+     * @param file 脚本文件
+     */
+    private fun executeFileTransfer(
+        operation: String,
+        files: List<String>,
+        targetPath: String,
+        isWindows: Boolean = true,
+        isMacOs: Boolean = false,
+        file: File
+    ) {
+        device?.let { device ->
+            val fileArgs = files.joinToString(" ") { "\"$it\"" }
+            val adbCommand =
+                "${DeviceManager.adbPath.value} -s ${device.serialNumber} $operation $fileArgs \"$targetPath/\""
+            Log.d(TAG, "Original ADB command: $adbCommand")
+            var command = adbCommand
+
+            if (isWindows) {
+                val commands = mutableListOf<String>()
+                commands.add("@echo off")
+                commands.add("echo Starting file transfer...")
+                // utf-8 编码
+                commands.add("chcp 65001")
+                commands.add(adbCommand)
+                commands.add("echo.")
+                commands.add("echo Executing: $adbCommand")
+                commands.add("echo Window will close in $CMD_CLOSE_TIMEOUT seconds...")
+                commands.add("timeout /t $CMD_CLOSE_TIMEOUT /nobreak > nul")
+
+                file.writeText(commands.joinToString("\r\n"))
+                command = "cmd.exe /c start cmd.exe /C ${file.absolutePath}"
+            } else if (isMacOs) {
+                file.writeText(adbCommand)
+                command = "open -b com.apple.terminal ${file.absolutePath}"
+            }
+            CmdUtil.run(command)
+        }
+    }
+
+    /**
      * push多个文件到系统
      * @param files 文件列表
      * @param remotePath 需要上传到位置
      * @param isWindows 是否windows平台
+     * @param isMacOs 是否macOS平台
      * @param file 这里非windows需要传，即软件执行文件
      */
     fun push(
@@ -89,39 +136,25 @@ object DeviceOperate {
         isMacOs: Boolean = false,
         file: File
     ) {
-        device?.let { device ->
-            // 构建多文件push命令
-            val fileArgs = files.joinToString(" ") { "\"$it\"" }
-            val adbCommand =
-                "${DeviceManager.adbPath.value} -s ${device.serialNumber} push $fileArgs \"$remotePath/\""
-            Log.d(TAG, "Original ADB command: $adbCommand")
-            var command = adbCommand
-            if (isWindows) {
-                val commands = mutableListOf<String>()
-                commands.add("@echo off")
-                commands.add("echo Starting file transfer...")
-                // gbk编码
-                commands.add("chcp 65001")
-                commands.add(adbCommand)
-                commands.add("echo.")
-                commands.add("echo Executing: $adbCommand")
-                commands.add("echo Window will close in $CMD_CLOSE_TIMEOUT seconds...")
-                commands.add("timeout /t $CMD_CLOSE_TIMEOUT /nobreak > nul")
-
-                file.writeText(commands.joinToString("\r\n"))
-
-                command =
-                    "cmd.exe /c start cmd.exe /C ${file.absolutePath}"
-            } else if (isMacOs) {
-                file.writeText(adbCommand)
-                command = "open -b com.apple.terminal ${file.absolutePath}"
-            }
-            CmdUtil.run(command)
-        }
+        executeFileTransfer("push", files, remotePath, isWindows, isMacOs, file)
     }
 
-    fun pull(remote: String, local: String) {
-        device?.pullFile(remote, local)
+    /**
+     * pull多个文件到本地
+     * @param files 文件列表
+     * @param localPath 本地路径
+     * @param isWindows 是否windows平台
+     * @param isMacOs 是否macOS平台
+     * @param file 这里非windows需要传，即软件执行文件
+     */
+    fun pull(
+        files: List<String>,
+        localPath: String,
+        isWindows: Boolean = true,
+        isMacOs: Boolean = false,
+        file: File
+    ) {
+        executeFileTransfer("pull", files, localPath, isWindows, isMacOs, file)
     }
 
     /**

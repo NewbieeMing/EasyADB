@@ -1,5 +1,7 @@
 package com.xmbest.screen.file
 
+import com.android.ddmlib.FileListingService
+
 sealed class FileUiEvent(val path: String) {
     object Refresh : FileUiEvent("")
     class NavigateToPath(path: String) : FileUiEvent(path)
@@ -12,6 +14,7 @@ sealed class FileUiEvent(val path: String) {
     class StartDrag(val files: List<String>) : FileUiEvent("")
     object DragEnd : FileUiEvent("")
     class UploadFiles(val files: List<String>) : FileUiEvent("")
+    class DownloadFiles(val files: List<FileListingService.FileEntry>) : FileUiEvent("")
     object Imported : FileUiEvent("")
     class Toast(val message: String) : FileUiEvent("")
 }
