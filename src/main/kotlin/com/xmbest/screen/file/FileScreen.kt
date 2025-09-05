@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xmbest.LocalSnackbarHostState
 import com.xmbest.ddmlib.DeviceManager
+import com.xmbest.ddmlib.Log
 import com.xmbest.screen.empty.EmptyScreen
 import com.xmbest.theme.CardShape
 import java.awt.datatransfer.DataFlavor
@@ -58,10 +59,7 @@ fun FileScreen(viewModel: FileViewModel = viewModel()) {
         val dragAndDropTarget = remember(snackbarHostState, coroutineScope) {
             object : DragAndDropTarget {
                 override fun onStarted(event: DragAndDropEvent) {
-                    val files = extractFilesFromEvent(event)
-                    if (files.isNotEmpty()) {
-                        viewModel.onEvent(FileUiEvent.StartDrag(files))
-                    }
+                    viewModel.onEvent(FileUiEvent.StartDrag)
                 }
 
                 override fun onEnded(event: DragAndDropEvent) {
@@ -70,17 +68,8 @@ fun FileScreen(viewModel: FileViewModel = viewModel()) {
 
                 override fun onDrop(event: DragAndDropEvent): Boolean {
                     val files = extractFilesFromEvent(event)
+                    Log.d("FileScreen", "onDrop files = $files")
                     if (files.isNotEmpty()) {
-                        // 检查是否包含中文路径
-                        val chinesePathFiles = files.filter { path ->
-                            path.any { char -> char.toString().matches(Regex("[\u4e00-\u9fa5]")) }
-                        }
-
-                        if (chinesePathFiles.isNotEmpty()) {
-                            viewModel.onEvent(FileUiEvent.Toast(viewModel.getString("file.drag.chinesePathError")))
-                            return false
-                        }
-
                         viewModel.onEvent(FileUiEvent.UploadFiles(files))
                         return true
                     }

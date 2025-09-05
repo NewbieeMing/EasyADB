@@ -36,7 +36,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         private const val KB = 1024 //定义KB的计算常量
     }
 
-    override val _uiState: MutableStateFlow<FileUiState> = MutableStateFlow(FileUiState())
+    override val _uiState: MutableStateFlow<FileUiState> =
+        MutableStateFlow(FileUiState(uploadTipText = getString("file.upload.dragTip")))
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
@@ -54,15 +55,15 @@ class FileViewModel : BaseViewModel<FileUiState>() {
             when (event) {
                 is FileUiEvent.NavigateToPath -> navigateToPath(event.path)
                 is FileUiEvent.Refresh -> refreshCurrentDirectory()
-                is FileUiEvent.StartDrag -> handleStartDrag(event.files)
+                is FileUiEvent.StartDrag -> handleStartDrag()
                 is FileUiEvent.DragEnd -> handleDragEnd()
                 is FileUiEvent.Imported -> handleImported()
                 is FileUiEvent.UploadFiles -> handleUploadFiles(event.files, uiState.value.parentPath)
                 is FileUiEvent.DownloadFiles -> handleDownloadFiles(event.files)
                 is FileUiEvent.DeleteFiles -> handleDeleteFiles(event.files)
                 is FileUiEvent.CreateFolder -> handleCreateFolder(event.folderName)
-            is FileUiEvent.CreateFile -> handleCreateFile(event.fileName)
-            is FileUiEvent.RenameFile -> handleRenameFile(event.oldPath, event.newName)
+                is FileUiEvent.CreateFile -> handleCreateFile(event.fileName)
+                is FileUiEvent.RenameFile -> handleRenameFile(event.oldPath, event.newName)
                 is FileUiEvent.Toast -> handleToast(event.message)
             }
         }
@@ -175,24 +176,15 @@ class FileViewModel : BaseViewModel<FileUiState>() {
     }
 
     // 拖拽事件处理方法
-    private fun handleStartDrag(files: List<String>) {
-        val fileCount = files.size
-        val tipText = if (fileCount == 1) {
-            getString("file.drag.uploadSingle").format(files.first().substringAfterLast("/"))
-        } else {
-            getString("file.drag.uploadMultiple").format(fileCount)
-        }
-
+    private fun handleStartDrag() {
         _uiState.value = _uiState.value.copy(
-            isDragging = true,
-            uploadTipText = tipText + " " + getString("file.drag.toCurrentPath").format(uiState.value.parentPath)
+            isDragging = true
         )
     }
 
     private fun handleDragEnd() {
         _uiState.value = _uiState.value.copy(
-            isDragging = false,
-            uploadTipText = "",
+            isDragging = false
         )
     }
 
@@ -231,17 +223,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
 
     private suspend fun handleImported() {
         val files = FileKit.openFilePicker(mode = FileKitMode.Multiple())
-        // 检查是否包含中文路径
-        val chinesePathFiles = files?.map { it.path }?.filter { path ->
-            path.any { char -> char.toString().matches(Regex("[\u4e00-\u9fa5]")) }
-        }
-
-        if (chinesePathFiles?.isNotEmpty() == true) {
-            handleToast(getString("file.drag.chinesePathError"))
-        } else {
-            files?.map { it.path }?.let {
-                handleUploadFiles(it, uiState.value.parentPath)
-            }
+        files?.map { it.path }?.let {
+            handleUploadFiles(it, uiState.value.parentPath)
         }
     }
 
@@ -250,7 +233,7 @@ class FileViewModel : BaseViewModel<FileUiState>() {
             handleToast(getString("file.create.folder.nameEmpty"))
             return
         }
-        
+
         val folderPath = calculatePath(uiState.value.parentPath, folderName)
         withContext(Dispatchers.IO) {
             try {
@@ -262,13 +245,13 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         }
         refreshCurrentDirectory()
     }
-    
+
     private suspend fun handleCreateFile(fileName: String) {
         if (fileName.isBlank()) {
             handleToast(getString("file.create.file.nameEmpty"))
             return
         }
-        
+
         val filePath = calculatePath(uiState.value.parentPath, fileName)
         withContext(Dispatchers.IO) {
             try {
@@ -280,13 +263,13 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         }
         refreshCurrentDirectory()
     }
-    
+
     private suspend fun handleRenameFile(oldPath: String, newName: String) {
         if (newName.isBlank()) {
             handleToast(getString("file.rename.name.empty"))
             return
         }
-        
+
         val parentPath = oldPath.substringBeforeLast("/")
         val newPath = calculatePath(parentPath, newName)
         withContext(Dispatchers.IO) {

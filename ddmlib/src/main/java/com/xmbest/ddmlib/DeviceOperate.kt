@@ -105,9 +105,9 @@ object DeviceOperate {
         file: File
     ) {
         device?.let { device ->
-            val fileArgs = files.joinToString(" ") { "\"$it\"" }
-            val adbCommand =
-                "${DeviceManager.adbPath.value} -s ${device.serialNumber} $operation $fileArgs \"$targetPath/\""
+            val adbCommand = files.map { file -> file to File(file).name }
+                .joinToString("\n") { "${DeviceManager.adbPath.value} -s ${device.serialNumber} $operation ${it.first} \"$targetPath/${it.second}\"" }
+
             Log.d(TAG, "Original ADB command: $adbCommand")
             var command = adbCommand
 
