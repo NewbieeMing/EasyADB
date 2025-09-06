@@ -3,6 +3,8 @@ package me.xmbest
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.runtime.staticCompositionLocalOf
 import me.xmbest.model.DialogState
+import me.xmbest.util.PreferencesUtil
+import me.xmbest.util.PreferencesUtil.PREFERENCES_CUSTOMER_ADB_PATH
 import org.jetbrains.skiko.hostOs
 import java.io.File
 
@@ -32,6 +34,12 @@ val appStorageAbsolutePath: String =
  */
 val programAdbAbsolutePath: String =
     File(appStorageAbsolutePath, adb.second).absolutePath
+
+/**
+ * 用户自定义adb文件路径
+ */
+val customerAdbAbsolutePath: String
+    get() = PreferencesUtil.get(PREFERENCES_CUSTOMER_ADB_PATH, "")
 
 // 创建LocalSnackbarHostState，类似于LocalContext.current的使用方式
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {

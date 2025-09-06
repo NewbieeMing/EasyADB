@@ -1,5 +1,6 @@
 package me.xmbest.model
 
+import me.xmbest.customerAdbAbsolutePath
 import me.xmbest.programAdbAbsolutePath
 
 /**
@@ -19,5 +20,5 @@ sealed class Environment(var path: String) {
     /**
      * 自定义路径
      */
-    class Custom(path: String) : Environment(path)
+    object Custom : Environment(customerAdbAbsolutePath)
 }

@@ -1,13 +1,15 @@
 package me.xmbest.module
 
 import androidx.compose.ui.res.useResource
+import io.github.vinceglb.filekit.FileKit
 import me.xmbest.adb
 import me.xmbest.appStorageAbsolutePath
 import me.xmbest.cfg
 import me.xmbest.ddmlib.DeviceManager
 import me.xmbest.exec
 import me.xmbest.model.Environment
-import io.github.vinceglb.filekit.FileKit
+import me.xmbest.util.PreferencesUtil
+import me.xmbest.util.PreferencesUtil.PREFERENCES_ADB_PATH
 import java.io.File
 
 object InitModule {
@@ -19,7 +21,7 @@ object InitModule {
     fun init() {
         writeFile()
         loadConfig()
-        DeviceManager.initialize(Environment.System.path)
+        initAdb()
         FileKit.init("EasyADB")
     }
 
@@ -42,6 +44,10 @@ object InitModule {
         }
     }
 
+    fun initAdb() {
+        val savedAdbPath = PreferencesUtil.get(PREFERENCES_ADB_PATH, Environment.Program.path)
+        DeviceManager.initialize(savedAdbPath)
+    }
 
     fun loadConfig() {
 
