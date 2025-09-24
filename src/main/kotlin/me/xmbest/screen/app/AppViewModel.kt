@@ -16,10 +16,17 @@ import me.xmbest.base.BaseViewModel
 import me.xmbest.ddmlib.DeviceOperate
 import me.xmbest.ddmlib.DeviceOperate.forceStop
 import me.xmbest.ddmlib.DeviceOperate.kill
+import me.xmbest.util.PreferencesUtil
 
 class AppViewModel : BaseViewModel<AppUiState>() {
     override val _uiState = MutableStateFlow(
         AppUiState(
+            filter = PreferencesUtil.get(PreferencesUtil.PREFERENCES_APP_FILTER, ""),
+            auto = PreferencesUtil.get(PreferencesUtil.PREFERENCES_APP_AUTO, true),
+            mode = when (PreferencesUtil.get(PreferencesUtil.PREFERENCES_APP_MODE, "ProcessMode")) {
+                "AppMode" -> AppShowMode.AppMode
+                else -> AppShowMode.ProcessMode
+            },
             buttonList = listOf(
                 ButtonInfo(
                     icon = Icons.Filled.Search,
@@ -87,6 +94,8 @@ class AppViewModel : BaseViewModel<AppUiState>() {
     private fun updateFilter(filter: String?) {
         val realFilter = filter ?: uiState.value.filter
         _uiState.value = _uiState.value.copy(filter = realFilter)
+        // 保存过滤器到存储
+        PreferencesUtil.set(PreferencesUtil.PREFERENCES_APP_FILTER, realFilter)
         if (uiState.value.mode == AppShowMode.ProcessMode) {
             loadPrecessList()
         }
@@ -94,13 +103,22 @@ class AppViewModel : BaseViewModel<AppUiState>() {
 
     private fun updateAppMode(appMode: AppShowMode) {
         _uiState.value = _uiState.value.copy(mode = appMode)
+        // 保存应用模式到存储
+        val modeString = when (appMode) {
+            is AppShowMode.AppMode -> "AppMode"
+            is AppShowMode.ProcessMode -> "ProcessMode"
+        }
+        PreferencesUtil.set(PreferencesUtil.PREFERENCES_APP_MODE, modeString)
         if (appMode == AppShowMode.ProcessMode) {
             loadPrecessList()
         }
     }
 
     private fun updateAuto() {
-        _uiState.value = _uiState.value.copy(auto = !uiState.value.auto)
+        val newAutoValue = !uiState.value.auto
+        _uiState.value = _uiState.value.copy(auto = newAutoValue)
+        // 保存自动刷新开关到存储
+        PreferencesUtil.set(PreferencesUtil.PREFERENCES_APP_AUTO, newAutoValue)
         createAutoJob()
     }
 

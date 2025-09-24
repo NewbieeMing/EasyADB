@@ -259,7 +259,8 @@ object DeviceOperate {
 
         // 如果第一次解析失败（可能是旧版 top），尝试通用 `top -n 1` 格式
         if (processes.isEmpty()) {
-            val fallbackResult = shell("top -n 1", 500)
+            val command = "top -n 1$postfix"
+            val fallbackResult = shell(command, 500)
             val fallbackColumns = fallbackResult.split("\n")
                 .firstOrNull { it.trim().startsWith("PID") }
                 ?.trim()

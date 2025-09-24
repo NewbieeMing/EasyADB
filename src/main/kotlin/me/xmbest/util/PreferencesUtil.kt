@@ -22,6 +22,21 @@ object PreferencesUtil {
      */
     const val PREFERENCES_THEME = "settings.theme"
 
+    /**
+     * 应用管理页面的过滤器
+     */
+    const val PREFERENCES_APP_FILTER = "app.filter"
+
+    /**
+     * 应用管理页面的自动刷新开关
+     */
+    const val PREFERENCES_APP_AUTO = "app.auto"
+
+    /**
+     * 应用管理页面的显示模式
+     */
+    const val PREFERENCES_APP_MODE = "app.mode"
+
     fun set(key: String, value: Any) {
         when (value) {
             is Boolean -> settings.putBoolean(key, value)
