@@ -20,26 +20,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import me.xmbest.ddmlib.DeviceOperate
-import me.xmbest.ddmlib.Log
-import me.xmbest.ddmlib.ProcessInfo
+import me.xmbest.LocalDialogState
+import me.xmbest.ddmlib.*
 import me.xmbest.theme.CardShape
+import me.xmbest.theme.blue_primary
+import me.xmbest.theme.green_primary
+import me.xmbest.theme.yellow_primary
+import me.xmbest.util.DialogUtil
 import java.util.Locale.getDefault
 
 @Composable
@@ -61,14 +60,161 @@ fun AppScreen(viewModel: AppViewModel = viewModel()) {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         HeaderTool(viewModel, uiState)
-        if (uiState.mode == AppShowMode.ProcessMode) {
-            LazyColumn {
-                stickyHeader {
-                    ProcessHeader()
-                }
+
+        LazyColumn {
+            stickyHeader {
+                Header(uiState)
+            }
+            if (uiState.mode == AppShowMode.ProcessMode) {
                 items(uiState.processList) {
                     Spacer(modifier = Modifier.height(8.dp))
                     ProcessItem(it)
+                }
+            } else {
+                items(uiState.appList) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AppItem(it)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    // 使用状态来跟踪版本信息
+    var versionName by remember { mutableStateOf(appInfo.versionName) }
+    var versionCode by remember { mutableStateOf(appInfo.versionCode) }
+    var size by remember { mutableStateOf(appInfo.size) }
+    var minSdk by remember { mutableStateOf(appInfo.minSdk) }
+    var targetSdk by remember { mutableStateOf(appInfo.targetSdk) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // 启动时加载版本信息
+    LaunchedEffect(appInfo.packageName) {
+        isLoading = true
+        appInfo.loadInfo()
+        versionName = appInfo.versionName
+        versionCode = appInfo.versionCode
+        size = appInfo.size
+        minSdk = appInfo.minSdk
+        targetSdk = appInfo.targetSdk
+        isLoading = false
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .height(64.dp)
+            .clip(CardShape)
+            .background(MaterialTheme.colors.surface)
+            .hoverable(interactionSource)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        SelectionContainer(Modifier.weight(3.5f)) {
+            Text(
+                text = appInfo.packageName,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+        }
+        SelectionContainer(Modifier.weight(2f)) {
+            Text(
+                text = if (isLoading) viewModel.getString("app.loading") else versionName,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+        }
+        SelectionContainer(Modifier.weight(2f)) {
+            Text(
+                text = if (isLoading) viewModel.getString("app.loading") else versionCode,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+        }
+        SelectionContainer(Modifier.weight(2f)) {
+            Text(
+                text = if (isLoading) viewModel.getString("app.loading") else "$minSdk/$targetSdk",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+        }
+        SelectionContainer(Modifier.weight(2f)) {
+            Text(
+                text = if (isLoading) viewModel.getString("app.loading") else size,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+        }
+        val dialogState = LocalDialogState.current
+        Row(Modifier.weight(3.5f), horizontalArrangement = Arrangement.SpaceBetween) {
+            if (isHovered) {
+                IconButton(onClick = {
+                    ClipboardUtil.setSysClipboardText(appInfo.path)
+                }) {
+                    TooltipArea({ Text(viewModel.getString("file.copyPath")) }) {
+                        Icon(
+                            imageVector = Icons.Outlined.ContentCopy,
+                            contentDescription = "",
+                            modifier = Modifier.size(20.dp),
+                            tint = blue_primary
+                        )
+                    }
+                }
+                IconButton(onClick = {
+                    viewModel.onEvent(AppUiEvent.StartApp(appInfo.packageName))
+                }) {
+                    TooltipArea({ Text(viewModel.getString("app.startApp")) }) {
+                        Icon(
+                            imageVector = Icons.Outlined.PlayArrow,
+                            contentDescription = "",
+                            modifier = Modifier.size(28.dp),
+                            tint = green_primary
+                        )
+                    }
+                }
+                IconButton(onClick = {
+                    DialogUtil.showWarning(
+                        dialogState = dialogState,
+                        message = viewModel.getString("app.clearData.confirm").format(appInfo.packageName),
+                        onConfirm = {
+                            viewModel.onEvent(AppUiEvent.ClearData(appInfo.packageName))
+                        },
+                        onCancel = {}
+                    )
+                }) {
+                    TooltipArea({ Text(viewModel.getString("settings.clearData")) }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "",
+                            modifier = Modifier.size(20.dp),
+                            tint = yellow_primary
+                        )
+                    }
+                }
+                IconButton(onClick = {
+                    DialogUtil.showWarning(
+                        dialogState = dialogState,
+                        message = viewModel.getString("app.uninstall.confirm").format(appInfo.packageName),
+                        onConfirm = {
+                            viewModel.onEvent(AppUiEvent.Uninstall(appInfo.packageName))
+                        },
+                        onCancel = {}
+                    )
+                }) {
+                    TooltipArea({ Text(viewModel.getString("app.uninstall")) }) {
+                        Icon(
+                            imageVector = Icons.Outlined.DeleteOutline,
+                            contentDescription = "",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colors.error
+                        )
+                    }
                 }
             }
         }
@@ -76,22 +222,60 @@ fun AppScreen(viewModel: AppViewModel = viewModel()) {
 }
 
 @Composable
-fun ProcessHeader() {
+fun Header(uiState: AppUiState, viewModel: AppViewModel = viewModel()) {
     Row(
         modifier = Modifier.fillMaxWidth().height(64.dp).background(MaterialTheme.colors.background)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        DeviceOperate.topColumns.subList(0, DeviceOperate.topColumns.size - 1).forEach { item ->
-            Text(text = item.uppercase(getDefault()), modifier = Modifier.weight(1f).align(Alignment.CenterVertically))
-        }
-        Text(
-            DeviceOperate.topColumns.last().uppercase(getDefault()),
-            modifier = Modifier.weight(4f).align(Alignment.CenterVertically)
-        )
-        Row(Modifier.weight(1.5f)) {
-            Text("action", modifier = Modifier.align(Alignment.CenterVertically))
+        if (uiState.mode == AppShowMode.ProcessMode) {
+            DeviceOperate.topColumns.subList(0, DeviceOperate.topColumns.size - 1).forEach { item ->
+                Text(
+                    text = item.uppercase(getDefault()),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f).align(Alignment.CenterVertically)
+                )
+            }
+            Text(
+                DeviceOperate.topColumns.last().uppercase(getDefault()),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(6f).align(Alignment.CenterVertically)
+            )
+            Row(Modifier.weight(1.5f)) {
+                Text("action", textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterVertically))
+            }
+        } else {
+            Text(
+                text = "packageName",
+                textAlign = TextAlign.Start,
+                modifier = Modifier.weight(3.5f).padding(start = 4.dp).align(Alignment.CenterVertically)
+            )
+            Text(
+                text = "versionName",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(2f).align(Alignment.CenterVertically)
+            )
+            Text(
+                text = "versionCode",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(2f).align(Alignment.CenterVertically)
+            )
+            Text(
+                text = "min/target",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(2f).align(Alignment.CenterVertically)
+            )
+            Text(
+                text = "size",
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(2f).align(Alignment.CenterVertically)
+            )
+            Text(
+                text = viewModel.getString("app.action"),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(3.5f).align(Alignment.CenterVertically)
+            )
         }
     }
 }
@@ -116,11 +300,11 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
     ) {
         list.forEach { item ->
             SelectionContainer(Modifier.weight(1f)) {
-                Text(text = item, modifier = Modifier.align(Alignment.CenterVertically))
+                Text(text = item, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterVertically))
             }
         }
         SelectionContainer(Modifier.weight(4f)) {
-            Text(process.name, modifier = Modifier.align(Alignment.CenterVertically))
+            Text(process.name, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterVertically))
         }
 
         Row(Modifier.weight(1.5f), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -128,7 +312,7 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
                 IconButton(onClick = {
                     viewModel.onEvent(AppUiEvent.Kill(listOf(process.pid)))
                 }) {
-                    TooltipArea({ Text("kill") }) {
+                    TooltipArea({ Text(viewModel.getString("app.kill")) }) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "",
@@ -140,7 +324,7 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
                 IconButton(onClick = {
                     viewModel.onEvent(AppUiEvent.ForceStop(process.name))
                 }) {
-                    TooltipArea({ Text("force-stop") }) {
+                    TooltipArea({ Text(viewModel.getString("app.forceStop")) }) {
                         Icon(
                             imageVector = Icons.Outlined.Stop,
                             contentDescription = "",
@@ -161,20 +345,27 @@ fun HeaderTool(viewModel: AppViewModel, uiState: AppUiState) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         SearchBarDefaults.InputField(
-            query = uiState.filter, onQueryChange = {
+            query = uiState.filter,
+            onQueryChange = {
                 Log.d("", "onQueryChange $it")
                 viewModel.onEvent(AppUiEvent.ChangeFilter(it))
-            }, onSearch = {
+            },
+            onSearch = {
                 Log.d("", "onSearch $it")
                 viewModel.onEvent(AppUiEvent.ChangeFilter(it))
-            }, expanded = false, onExpandedChange = { }, placeholder = { Text("Search") }, leadingIcon = {
+            },
+            expanded = false,
+            onExpandedChange = { },
+            placeholder = { Text(viewModel.getString("app.search")) },
+            leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Filter",
                     tint = MaterialTheme.colors.primary,
                     modifier = Modifier.size(20.dp)
                 )
-            }, trailingIcon = {
+            },
+            trailingIcon = {
                 if (uiState.filter.isNotEmpty()) {
                     IconButton(
                         onClick = { viewModel.onEvent(AppUiEvent.ChangeFilter("")) },
@@ -183,10 +374,11 @@ fun HeaderTool(viewModel: AppViewModel, uiState: AppUiState) {
                         Icon(Icons.Default.Cancel, "")
                     }
                 }
-            }, modifier = Modifier.weight(1f).clip(CircleShape).background(MaterialTheme.colors.surface)
+            },
+            modifier = Modifier.weight(1f).clip(CircleShape).background(MaterialTheme.colors.surface)
         )
 
-        uiState.buttonList.forEach { button ->
+        uiState.buttonList.filter { it.isShow() }.forEach { button ->
             Spacer(modifier = Modifier.width(16.dp))
             AppIconButton(
                 icon = button.icon,

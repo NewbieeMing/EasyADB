@@ -31,6 +31,7 @@ object PreferencesUtil {
      * 应用管理页面的自动刷新开关
      */
     const val PREFERENCES_APP_AUTO = "app.auto"
+    const val PREFERENCES_APP_THIRD = "app.third"
 
     /**
      * 应用管理页面的显示模式

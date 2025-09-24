@@ -4,8 +4,12 @@ sealed class AppUiEvent {
     class ChangeFilter(val filter: String?) : AppUiEvent()
     class ChangeAppMode(val mode: AppShowMode) : AppUiEvent()
     object ChangeAuto : AppUiEvent()
+    object ChangeThird : AppUiEvent()
     object Show : AppUiEvent()
     object Dispose : AppUiEvent()
     class Kill(val pids: List<String>) : AppUiEvent()
     class ForceStop(val applicationId: String) : AppUiEvent()
+    class StartApp(val packageName: String) : AppUiEvent()
+    class ClearData(val packageName: String) : AppUiEvent()
+    class Uninstall(val packageName: String) :AppUiEvent()
 }

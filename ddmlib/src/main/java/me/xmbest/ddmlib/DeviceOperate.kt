@@ -32,9 +32,20 @@ object DeviceOperate {
         return device?.root() ?: false
     }
 
+    suspend fun startApp(packageName: String) {
+        val activity = getLaunchActivity(packageName)
+        if (activity.isBlank()) shell("monkey -p $packageName -v 1") else shell(
+            "am start $activity"
+        )
+    }
+
     fun forceStop(applicationName: String) {
         Log.i(TAG, "adb shell force-stop $applicationName")
         device?.forceStop(applicationName)
+    }
+
+    fun clear(applicationName: String) {
+        shell("pm clear $applicationName")
     }
 
     /**
@@ -90,6 +101,28 @@ object DeviceOperate {
     fun chmod(path: String, auth: Int) {
         Log.i(TAG, "adb shell chmod $auth $path")
         shell("chmod $auth $path")
+    }
+
+    /**
+     * 查找应用启动activity
+     * @param packageName 包名
+     */
+    suspend fun getLaunchActivity(packageName: String): String {
+        val launchActivity = shell("dumpsys package $packageName -A 1 MAIN", 500)
+        if (launchActivity.isBlank()) return ""
+        val outLines = launchActivity.lines()
+        if (outLines.isEmpty()) {
+            return ""
+        } else {
+            for (value in outLines) {
+                if (value.contains("$packageName/")) {
+                    return value.substring(
+                        value.indexOf("$packageName/"), value.indexOf(" filter")
+                    )
+                }
+            }
+            return ""
+        }
     }
 
     /**
@@ -247,11 +280,107 @@ object DeviceOperate {
     fun logcatC() = shell("logcat -c")
 
     /**
+     * 获取安装应用列表
+     * @param filter 过滤关键词
+     * @param thirdApp 是否第三方应用
+     */
+    suspend fun getAppList(filter: String, thirdApp: Boolean = false): List<AppInfo> {
+        val thirdPostfix = if (thirdApp) " -3" else ""
+        val postfix = if (filter.isEmpty()) "" else " | grep -E '$filter'"
+        val command = "pm list packages -f $thirdPostfix$postfix"
+        Log.d(TAG, command)
+        val result = shell(command, 500)
+        return result.split("\n")
+            .filter { it.isNotBlank() }
+            .mapNotNull { line ->
+                val lastEqualIndex = line.lastIndexOf("=")
+                if (lastEqualIndex != -1) {
+                    val path = line.take(lastEqualIndex).removePrefix("package:")
+                    val packageName = line.substring(lastEqualIndex + 1)
+                    AppInfo(
+                        path = path,
+                        packageName = packageName,
+                    )
+                } else {
+                    null
+                }
+            }
+    }
+
+    suspend fun getAppVersion(packageName: String): Map<String, String> {
+        val command = "dumpsys package $packageName | grep version"
+        val result = shell(command, 300)
+
+        val versionMap = mutableMapOf<String, String>()
+
+        result.split("\n").forEach { line ->
+            val trimmedLine = line.trim()
+            if (trimmedLine.contains("versionCode=")) {
+                val versionCode = trimmedLine.substringAfter("versionCode=").substringBefore(" ")
+                versionMap["versionCode"] = versionCode
+            }
+
+            if (trimmedLine.contains("minSdk=")) {
+                val minSdk = trimmedLine.substringAfter("minSdk=").substringBefore(" ")
+                versionMap["minSdk"] = minSdk
+            }
+
+            if (trimmedLine.contains("targetSdk=")) {
+                val targetSdk = trimmedLine.substringAfter("targetSdk=").substringBefore(" ")
+                versionMap["targetSdk"] = targetSdk
+            }
+
+            if (trimmedLine.contains("versionName=")) {
+                val versionName = trimmedLine.substringAfter("versionName=").trim()
+                versionMap["versionName"] = versionName
+            }
+        }
+
+        return versionMap
+    }
+
+    /**
+     * 获取文件大小并格式化为合适的单位
+     * @param packageName 文件包名
+     * @return 格式化后的文件大小字符串（GB、MB或KB）
+     */
+    suspend fun getFileSize(packageName: String): String {
+        return try {
+            val command = "pm path $packageName | cut -d: -f2 | xargs stat -c %s"
+            val result = shell(command, 300)
+            val sizeInBytes = result.trim().toLongOrNull() ?: 0L
+
+            when {
+                sizeInBytes >= 1024 * 1024 * 1024 -> {
+                    val sizeInGB = sizeInBytes / (1024.0 * 1024.0 * 1024.0)
+                    String.format("%.2f GB", sizeInGB)
+                }
+
+                sizeInBytes >= 1024 * 1024 -> {
+                    val sizeInMB = sizeInBytes / (1024.0 * 1024.0)
+                    String.format("%.2f MB", sizeInMB)
+                }
+
+                sizeInBytes >= 1024 -> {
+                    val sizeInKB = sizeInBytes / 1024.0
+                    String.format("%.2f KB", sizeInKB)
+                }
+
+                else -> {
+                    "$sizeInBytes B"
+                }
+            }
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
+    /**
      * 获取当前进程信息
      */
     suspend fun getProcessList(filter: String): List<ProcessInfo> {
         // 第一次尝试：使用 `top -b -n 1 -o <column>` 格式
-        val postfix = if (filter.isEmpty()) "" else " | grep $filter"
+        val postfix = if (filter.isEmpty()) "" else " | grep -E '$filter'"
         val command = topColumns.joinToString(" -o ", "top -b -n 1 -o ", postfix)
         Log.d(TAG, "command = $command")
         val result = shell(command, 1000)
