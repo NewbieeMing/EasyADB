@@ -62,6 +62,7 @@ compose.desktop {
                 packageVersion = appVersion
                 msiPackageVersion = appVersion
                 exePackageVersion = appVersion
+                iconFile.set(project.file("launcher/logo.ico"))
                 menu = true
                 shortcut = true
             }
@@ -75,6 +76,7 @@ compose.desktop {
                 packageBuildVersion = appVersion
                 dmgPackageBuildVersion = appVersion
                 pkgPackageBuildVersion = appVersion
+                iconFile.set(project.file("launcher/logo.icns"))
             }
         }
     }
