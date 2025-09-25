@@ -1,10 +1,10 @@
 package me.xmbest.screen.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Hive
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Settings
 import androidx.lifecycle.viewModelScope
 import com.android.ddmlib.IDevice
 import kotlinx.coroutines.Dispatchers
@@ -23,25 +23,25 @@ class NaviViewModule() : BaseViewModel<NaviUiState>() {
     val pageList = listOf(
         Page(
             name = getString("router.item.commonFeatures"),
-            Icons.Default.Hive
+            Icons.Outlined.Category
         ) {
             HomeScreen()
         },
         Page(
             "应用管理",
-            Icons.Default.Android
+            Icons.Outlined.GridView
         ) {
             AppScreen()
         },
         Page(
             getString("router.item.fileManagement"),
-            Icons.Default.Folder
+            Icons.Outlined.FolderOpen
         ) {
             FileScreen()
         },
         Page(
             getString("router.item.settings"),
-            Icons.Default.Settings
+            Icons.Outlined.Settings
         ) { SettingsScreen() }
     )
 

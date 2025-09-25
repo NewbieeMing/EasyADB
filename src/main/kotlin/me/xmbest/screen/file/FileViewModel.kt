@@ -19,6 +19,8 @@ import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -34,10 +36,18 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         private const val GB = 1024 * 1024 * 1024 //定义GB的计算常量
         private const val MB = 1024 * 1024 //定义MB的计算常量
         private const val KB = 1024 //定义KB的计算常量
+        private const val FILTER_DEBOUNCE_DELAY = 300L // 防抖动延迟时间（毫秒）
     }
 
     override val _uiState: MutableStateFlow<FileUiState> =
         MutableStateFlow(FileUiState(uploadTipText = getString("file.upload.dragTip")))
+
+    // 缓存原始文件列表，避免重复请求
+    private var cachedFileList: List<FileListingService.FileEntry> = emptyList()
+    private var cachedPath: String = ""
+    
+    // 防抖动Job
+    private var filterJob: Job? = null
 
     init {
         viewModelScope.launch(Dispatchers.Default) {
@@ -67,7 +77,7 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 is FileUiEvent.RenameFile -> handleRenameFile(event.oldPath, event.newName)
                 is FileUiEvent.Toast -> handleToast(event.message)
                 is FileUiEvent.JumpToClipboardPath -> handleJumpToClipboardPath()
-                is FileUiEvent.UpdateFilter -> handleUpdateFilter(event.filter)
+                is FileUiEvent.UpdateFilter -> handleUpdateFilterWithDebounce(event.filter)
             }
         }
 
@@ -83,19 +93,85 @@ class FileViewModel : BaseViewModel<FileUiState>() {
 
     private suspend fun refreshCurrentDirectory() {
         Log.d(TAG, "refreshCurrentDirectory path = ${uiState.value.parentPath}, filter = ${uiState.value.filterStr}")
-        _uiState.value =
-            _uiState.value.copy(
-                children = DeviceOperate.ls(uiState.value.parentPath)
-                    .filter { it.name.contains(uiState.value.filterStr,true) }
-            )
+        
+        // 从设备获取最新文件列表并缓存
+        val fileList = DeviceOperate.ls(uiState.value.parentPath)
+        cachedFileList = fileList
+        cachedPath = uiState.value.parentPath
+        
+        // 应用过滤
+        val filteredList = if (uiState.value.filterStr.isBlank()) {
+            fileList
+        } else {
+            fileList.filter { it.name.contains(uiState.value.filterStr, true) }
+        }
+        
+        _uiState.value = _uiState.value.copy(children = filteredList)
     }
 
     private suspend fun navigateToPath(path: String) {
         Log.d(TAG, "navigateToPath path = $path")
         _uiState.value = _uiState.value.copy(parentPath = path, filterStr = "")
+        // 清除缓存，因为路径改变了
+        cachedFileList = emptyList()
+        cachedPath = ""
         refreshCurrentDirectory()
     }
 
+    /**
+     * 带防抖动的过滤处理
+     */
+    private fun handleUpdateFilterWithDebounce(filter: String) {
+        // 立即更新UI状态中的过滤字符串，提供即时反馈
+        _uiState.value = _uiState.value.copy(filterStr = filter)
+        
+        // 取消之前的防抖动任务
+        filterJob?.cancel()
+        
+        // 启动新的防抖动任务
+        filterJob = viewModelScope.launch(Dispatchers.Default) {
+            delay(FILTER_DEBOUNCE_DELAY)
+            applyFilter(filter)
+        }
+    }
+
+    /**
+     * 应用过滤逻辑，优先使用缓存
+     */
+    private suspend fun applyFilter(filter: String) {
+        Log.d(TAG, "applyFilter filter = $filter, cachedPath = $cachedPath, currentPath = ${uiState.value.parentPath}")
+        
+        // 检查是否可以使用缓存
+        val fileList = if (cachedPath == uiState.value.parentPath && cachedFileList.isNotEmpty()) {
+            // 使用缓存的文件列表
+            Log.d(TAG, "Using cached file list for filtering")
+            cachedFileList
+        } else {
+            // 缓存不可用，重新获取文件列表
+            Log.d(TAG, "Cache miss, fetching fresh file list")
+            val freshList = DeviceOperate.ls(uiState.value.parentPath)
+            cachedFileList = freshList
+            cachedPath = uiState.value.parentPath
+            freshList
+        }
+        
+        // 应用过滤
+        val filteredList = if (filter.isBlank()) {
+            fileList
+        } else {
+            fileList.filter { it.name.contains(filter, true) }
+        }
+        
+        // 更新UI状态
+        _uiState.value = _uiState.value.copy(children = filteredList)
+    }
+
+    /**
+     * 原有的handleUpdateFilter方法保持兼容性，但现在使用防抖动版本
+     */
+//    private suspend fun handleUpdateFilter(filter: String) {
+//        handleUpdateFilterWithDebounce(filter)
+//    }
 
     fun getFileTypeInfo(type: Int): FileTypeInfo {
         return when (type) {
@@ -179,6 +255,14 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         return resultSize
     }
 
+    /**
+     * 清除文件列表缓存
+     */
+    private fun clearCache() {
+        cachedFileList = emptyList()
+        cachedPath = ""
+    }
+
     // 拖拽事件处理方法
     private fun handleStartDrag() {
         _uiState.value = _uiState.value.copy(
@@ -202,6 +286,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 file = File(appStorageAbsolutePath, exec.second)
             )
         }
+        // 清除缓存，因为文件列表已改变
+        clearCache()
         refreshCurrentDirectory()
     }
 
@@ -222,6 +308,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         withContext(Dispatchers.IO) {
             DeviceOperate.rm(files.map { it.absolutePath })
         }
+        // 清除缓存，因为文件列表已改变
+        clearCache()
         refreshCurrentDirectory()
     }
 
@@ -231,6 +319,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
             withContext(Dispatchers.IO) {
                 DeviceOperate.rm(currentFiles.map { it.absolutePath })
             }
+            // 清除缓存，因为文件列表已改变
+            clearCache()
             refreshCurrentDirectory()
         }
     }
@@ -257,6 +347,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 handleToast(getString("file.create.folder.error").format(e.message ?: "Unknown error"))
             }
         }
+        // 清除缓存，因为文件列表已改变
+        clearCache()
         refreshCurrentDirectory()
     }
 
@@ -275,6 +367,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 handleToast(getString("file.create.file.error").format(e.message ?: "Unknown error"))
             }
         }
+        // 清除缓存，因为文件列表已改变
+        clearCache()
         refreshCurrentDirectory()
     }
 
@@ -294,6 +388,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 handleToast(getString("file.rename.failed").format(e.message ?: "Unknown error"))
             }
         }
+        // 清除缓存，因为文件列表已改变
+        clearCache()
         refreshCurrentDirectory()
     }
 

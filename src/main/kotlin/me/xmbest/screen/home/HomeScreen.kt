@@ -91,7 +91,7 @@ private fun DeviceInfoCard(
         if (device != null) {
             DeviceInfoItem(
                 viewModel.getString("device.serialNumber"),
-                (device.serialNumber ?: viewModel.getString("device.unknown")).plus(if (device.isRoot) "root" else "")
+                (device.serialNumber ?: viewModel.getString("device.unknown")).plus(if (device.isRoot) "(root)" else "")
             )
             DeviceInfoItem(viewModel.getString("device.name"), device.name ?: viewModel.getString("device.unknown"))
             DeviceInfoItem(
