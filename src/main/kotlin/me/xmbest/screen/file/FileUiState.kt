@@ -8,5 +8,7 @@ data class FileUiState(
     val isDragging: Boolean = false,  // 是否处于拖拽状态
     val uploadTipText: String = "", // 上传提示文本
     val toast: String = "",
-    val filterStr: String = ""
+    val filterStr: String = "",
+    val favorites: List<String> = emptyList(), // 收藏夹列表
+    val showFavoritesDropdown: Boolean = false // 是否显示收藏夹下拉菜单
 )

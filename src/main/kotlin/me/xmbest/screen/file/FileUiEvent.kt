@@ -3,19 +3,22 @@ package me.xmbest.screen.file
 import com.android.ddmlib.FileListingService
 
 sealed class FileUiEvent(val path: String) {
-    object Refresh : FileUiEvent("")
+    data object Refresh : FileUiEvent("")
     class NavigateToPath(path: String) : FileUiEvent(path)
-    object StartDrag : FileUiEvent("")
-    object DragEnd : FileUiEvent("")
-    object Imported : FileUiEvent("")
+    data object StartDrag : FileUiEvent("")
+    data object DragEnd : FileUiEvent("")
+    data object Imported : FileUiEvent("")
     class UploadFiles(val files: List<String>) : FileUiEvent("")
     class DownloadFiles(val files: List<FileListingService.FileEntry>) : FileUiEvent("")
     class DeleteFiles(val files: List<FileListingService.FileEntry>) : FileUiEvent("")
-    object DeleteAllFiles : FileUiEvent("")
+    data object DeleteAllFiles : FileUiEvent("")
     data class CreateFolder(val folderName: String) : FileUiEvent("")
     data class CreateFile(val fileName: String) : FileUiEvent("")
     data class RenameFile(val oldPath: String, val newName: String) : FileUiEvent("")
     class Toast(val message: String) : FileUiEvent("")
-    object JumpToClipboardPath : FileUiEvent("")
+    data object JumpToClipboardPath : FileUiEvent("")
     data class UpdateFilter(val filter: String) : FileUiEvent("")
+    data class ToggleFavorite(val filePath: String) : FileUiEvent("")
+    data object RefreshFavorites : FileUiEvent("")
+    data class NavigateToFavorite(val favoritePath: String) : FileUiEvent("")
 }

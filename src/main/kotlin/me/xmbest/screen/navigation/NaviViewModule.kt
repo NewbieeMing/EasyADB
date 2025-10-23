@@ -28,7 +28,7 @@ class NaviViewModule() : BaseViewModel<NaviUiState>() {
             HomeScreen()
         },
         Page(
-            "应用管理",
+            getString("router.item.appManagement"),
             Icons.Outlined.GridView
         ) {
             AppScreen()

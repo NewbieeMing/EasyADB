@@ -38,6 +38,11 @@ object PreferencesUtil {
      */
     const val PREFERENCES_APP_MODE = "app.mode"
 
+    /**
+     * 文件管理收藏夹路径列表
+     */
+    private const val PREFERENCES_FILE_FAVORITES = "file.favorites"
+
     fun set(key: String, value: Any) {
         when (value) {
             is Boolean -> settings.putBoolean(key, value)
@@ -64,5 +69,45 @@ object PreferencesUtil {
 
     fun clear() {
         settings.clear()
+    }
+
+    /**
+     * 获取收藏夹路径列表
+     */
+    fun getFavorites(): List<String> {
+        val favoritesString = get(PREFERENCES_FILE_FAVORITES, "")
+        return if (favoritesString.isEmpty()) {
+            emptyList()
+        } else {
+            favoritesString.split("|").filter { it.isNotEmpty() }
+        }
+    }
+
+    /**
+     * 添加路径到收藏夹
+     */
+    fun addFavorite(path: String) {
+        val favorites = getFavorites().toMutableList()
+        if (!favorites.contains(path)) {
+            favorites.add(path)
+            set(PREFERENCES_FILE_FAVORITES, favorites.joinToString("|"))
+        }
+    }
+
+    /**
+     * 从收藏夹移除路径
+     */
+    fun removeFavorite(path: String) {
+        val favorites = getFavorites().toMutableList()
+        if (favorites.remove(path)) {
+            set(PREFERENCES_FILE_FAVORITES, favorites.joinToString("|"))
+        }
+    }
+
+    /**
+     * 检查路径是否在收藏夹中
+     */
+    fun isFavorite(path: String): Boolean {
+        return getFavorites().contains(path)
     }
 }

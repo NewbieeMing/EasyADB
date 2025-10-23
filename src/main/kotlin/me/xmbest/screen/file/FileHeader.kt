@@ -1,22 +1,50 @@
 package me.xmbest.screen.file
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.HorizontalScrollbar
+import androidx.compose.foundation.TooltipArea
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.HorizontalScrollbar
 import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
-import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowOutward
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +117,7 @@ fun FileHeader(viewModel: FileViewModel) {
         )
 
         FunctionButtonsRow(
+            viewModel = viewModel,
             showBackButton = uiState.parentPath != FILE_SPLIT,
             showDelectFilesButton = uiState.children.isNotEmpty(),
             onBackClick = { viewModel.onEvent(FileUiEvent.NavigateToPath(getParentPath(uiState.parentPath))) },
@@ -210,7 +239,7 @@ private fun BreadcrumbNavigation(
                     }
                 }
             }
-            
+
             HorizontalScrollbar(
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                 adapter = rememberScrollbarAdapter(lazyListState)
@@ -262,6 +291,7 @@ private fun PathBreadcrumb(
 
 @Composable
 private fun FunctionButtonsRow(
+    viewModel: FileViewModel,
     showBackButton: Boolean,
     showDelectFilesButton: Boolean,
     onBackClick: () -> Unit,
@@ -297,6 +327,9 @@ private fun FunctionButtonsRow(
             text = refreshLabel,
             onClick = onRefreshClick
         )
+
+        // 收藏夹按钮
+        FavoritesButton(viewModel)
 
         FunctionButton(
             icon = Icons.Default.CreateNewFolder,
@@ -367,5 +400,75 @@ private fun JumpToPathButton(
                 viewModel.onEvent(FileUiEvent.JumpToClipboardPath)
             }
         )
+    }
+}
+
+@Composable
+private fun FavoritesButton(viewModel: FileViewModel) {
+    val uiState = viewModel.uiState.collectAsState().value
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        FunctionButton(
+            icon = Icons.Default.Star,
+            text = viewModel.getString("favorites.title"),
+            onClick = {
+                viewModel.onEvent(FileUiEvent.RefreshFavorites)
+                expanded = true
+            }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(300.dp)
+        ) {
+            if (uiState.favorites.isEmpty()) {
+                DropdownMenuItem(
+                    onClick = { },
+                    enabled = false
+                ) {
+                    Text(
+                        text = viewModel.getString("favorites.empty"),
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            } else {
+                uiState.favorites.forEach { path ->
+                    DropdownMenuItem(
+                        onClick = {
+                            viewModel.onEvent(FileUiEvent.NavigateToFavorite(path))
+                            expanded = false
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = path,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            IconButton(
+                                onClick = {
+                                    viewModel.onEvent(FileUiEvent.ToggleFavorite(path))
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = viewModel.getString("favorites.remove"),
+                                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

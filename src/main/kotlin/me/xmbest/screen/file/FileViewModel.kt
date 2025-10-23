@@ -3,16 +3,15 @@ package me.xmbest.screen.file
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.DeviceHub
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Timeline
 import androidx.lifecycle.viewModelScope
 import com.android.ddmlib.FileListingService
-import me.xmbest.FILE_SPLIT
-import me.xmbest.appStorageAbsolutePath
-import me.xmbest.base.BaseViewModel
-import me.xmbest.ddmlib.DeviceOperate
-import me.xmbest.ddmlib.FileManager
-import me.xmbest.ddmlib.Log
-import me.xmbest.exec
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
@@ -25,6 +24,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.xmbest.FILE_SPLIT
+import me.xmbest.appStorageAbsolutePath
+import me.xmbest.base.BaseViewModel
+import me.xmbest.ddmlib.DeviceOperate
+import me.xmbest.ddmlib.FileManager
+import me.xmbest.ddmlib.Log
+import me.xmbest.exec
+import me.xmbest.util.PreferencesUtil
 import org.jetbrains.skiko.hostOs
 import java.io.File
 import java.text.DecimalFormat
@@ -40,12 +47,17 @@ class FileViewModel : BaseViewModel<FileUiState>() {
     }
 
     override val _uiState: MutableStateFlow<FileUiState> =
-        MutableStateFlow(FileUiState(uploadTipText = getString("file.upload.dragTip")))
+        MutableStateFlow(
+            FileUiState(
+                uploadTipText = getString("file.upload.dragTip"),
+                favorites = PreferencesUtil.getFavorites()
+            )
+        )
 
     // 缓存原始文件列表，避免重复请求
     private var cachedFileList: List<FileListingService.FileEntry> = emptyList()
     private var cachedPath: String = ""
-    
+
     // 防抖动Job
     private var filterJob: Job? = null
 
@@ -68,7 +80,11 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 is FileUiEvent.StartDrag -> handleStartDrag()
                 is FileUiEvent.DragEnd -> handleDragEnd()
                 is FileUiEvent.Imported -> handleImported()
-                is FileUiEvent.UploadFiles -> handleUploadFiles(event.files, uiState.value.parentPath)
+                is FileUiEvent.UploadFiles -> handleUploadFiles(
+                    event.files,
+                    uiState.value.parentPath
+                )
+
                 is FileUiEvent.DownloadFiles -> handleDownloadFiles(event.files)
                 is FileUiEvent.DeleteFiles -> handleDeleteFiles(event.files)
                 is FileUiEvent.DeleteAllFiles -> handleDeleteAllFiles()
@@ -78,6 +94,9 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 is FileUiEvent.Toast -> handleToast(event.message)
                 is FileUiEvent.JumpToClipboardPath -> handleJumpToClipboardPath()
                 is FileUiEvent.UpdateFilter -> handleUpdateFilterWithDebounce(event.filter)
+                is FileUiEvent.ToggleFavorite -> handleToggleFavorite(event.filePath)
+                is FileUiEvent.RefreshFavorites -> handleRefreshFavorites()
+                is FileUiEvent.NavigateToFavorite -> handleNavigateToFavorite(event.favoritePath)
             }
         }
 
@@ -92,20 +111,23 @@ class FileViewModel : BaseViewModel<FileUiState>() {
     }
 
     private suspend fun refreshCurrentDirectory() {
-        Log.d(TAG, "refreshCurrentDirectory path = ${uiState.value.parentPath}, filter = ${uiState.value.filterStr}")
-        
+        Log.d(
+            TAG,
+            "refreshCurrentDirectory path = ${uiState.value.parentPath}, filter = ${uiState.value.filterStr}"
+        )
+
         // 从设备获取最新文件列表并缓存
         val fileList = DeviceOperate.ls(uiState.value.parentPath)
         cachedFileList = fileList
         cachedPath = uiState.value.parentPath
-        
+
         // 应用过滤
         val filteredList = if (uiState.value.filterStr.isBlank()) {
             fileList
         } else {
             fileList.filter { it.name.contains(uiState.value.filterStr, true) }
         }
-        
+
         _uiState.value = _uiState.value.copy(children = filteredList)
     }
 
@@ -124,10 +146,10 @@ class FileViewModel : BaseViewModel<FileUiState>() {
     private fun handleUpdateFilterWithDebounce(filter: String) {
         // 立即更新UI状态中的过滤字符串，提供即时反馈
         _uiState.value = _uiState.value.copy(filterStr = filter)
-        
+
         // 取消之前的防抖动任务
         filterJob?.cancel()
-        
+
         // 启动新的防抖动任务
         filterJob = viewModelScope.launch(Dispatchers.Default) {
             delay(FILTER_DEBOUNCE_DELAY)
@@ -139,8 +161,11 @@ class FileViewModel : BaseViewModel<FileUiState>() {
      * 应用过滤逻辑，优先使用缓存
      */
     private suspend fun applyFilter(filter: String) {
-        Log.d(TAG, "applyFilter filter = $filter, cachedPath = $cachedPath, currentPath = ${uiState.value.parentPath}")
-        
+        Log.d(
+            TAG,
+            "applyFilter filter = $filter, cachedPath = $cachedPath, currentPath = ${uiState.value.parentPath}"
+        )
+
         // 检查是否可以使用缓存
         val fileList = if (cachedPath == uiState.value.parentPath && cachedFileList.isNotEmpty()) {
             // 使用缓存的文件列表
@@ -154,14 +179,14 @@ class FileViewModel : BaseViewModel<FileUiState>() {
             cachedPath = uiState.value.parentPath
             freshList
         }
-        
+
         // 应用过滤
         val filteredList = if (filter.isBlank()) {
             fileList
         } else {
             fileList.filter { it.name.contains(filter, true) }
         }
-        
+
         // 更新UI状态
         _uiState.value = _uiState.value.copy(children = filteredList)
     }
@@ -293,7 +318,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
 
     private suspend fun handleDownloadFiles(files: List<FileListingService.FileEntry>) {
         withContext(Dispatchers.IO) {
-            val localPath = FileKit.openDirectoryPicker(getString("file.saveTo"))?.path ?: return@withContext
+            val localPath =
+                FileKit.openDirectoryPicker(getString("file.saveTo"))?.path ?: return@withContext
             DeviceOperate.pull(
                 files = files.map { it.absolutePath },
                 localPath = localPath,
@@ -344,7 +370,11 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 DeviceOperate.mkdir(folderPath, 755)
                 handleToast(getString("file.create.folder.success").format(folderName))
             } catch (e: Exception) {
-                handleToast(getString("file.create.folder.error").format(e.message ?: "Unknown error"))
+                handleToast(
+                    getString("file.create.folder.error").format(
+                        e.message ?: "Unknown error"
+                    )
+                )
             }
         }
         // 清除缓存，因为文件列表已改变
@@ -364,7 +394,11 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 DeviceOperate.touch(filePath)
                 handleToast(getString("file.create.file.success").format(fileName))
             } catch (e: Exception) {
-                handleToast(getString("file.create.file.error").format(e.message ?: "Unknown error"))
+                handleToast(
+                    getString("file.create.file.error").format(
+                        e.message ?: "Unknown error"
+                    )
+                )
             }
         }
         // 清除缓存，因为文件列表已改变
@@ -452,6 +486,51 @@ class FileViewModel : BaseViewModel<FileUiState>() {
         } catch (e: Exception) {
             Log.e(TAG, "Error getting file entry: $path", e)
             null
+        }
+    }
+
+    // 收藏夹相关处理方法
+    private fun handleToggleFavorite(filePath: String) {
+        val currentFavorites = _uiState.value.favorites
+        val updatedFavorites = if (PreferencesUtil.isFavorite(filePath)) {
+            PreferencesUtil.removeFavorite(filePath)
+            currentFavorites - filePath
+        } else {
+            PreferencesUtil.addFavorite(filePath)
+            currentFavorites + filePath
+        }
+
+        _uiState.value = _uiState.value.copy(favorites = updatedFavorites)
+    }
+
+    private fun handleRefreshFavorites() {
+        val favorites = PreferencesUtil.getFavorites()
+        _uiState.value = _uiState.value.copy(favorites = favorites)
+    }
+
+    private suspend fun handleNavigateToFavorite(favoritePath: String) {
+        try {
+            // 检查路径是否存在
+            val fileEntry = getFileEntry(favoritePath)
+            if (fileEntry == null) {
+                handleToast(getString("favorites.pathNotExist").format(favoritePath))
+                // 从收藏夹中移除不存在的路径
+                PreferencesUtil.removeFavorite(favoritePath)
+                handleRefreshFavorites()
+                return
+            }
+
+            // 如果是目录，直接跳转
+            if (fileEntry.isDirectory) {
+                navigateToPath(favoritePath)
+            } else {
+                // 如果是文件，跳转到文件的上级目录
+                val parentPath = favoritePath.substringBeforeLast(FILE_SPLIT).ifEmpty { FILE_SPLIT }
+                navigateToPath(parentPath)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error navigating to favorite: $favoritePath", e)
+            handleToast(getString("favorites.navigationError").format(e.message ?: "Unknown error"))
         }
     }
 }

@@ -5,18 +5,36 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -136,6 +154,31 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = viewModel.getString("file.copyPath"),
+                            tint = MaterialTheme.colors.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // 收藏/取消收藏按钮
+                val isFavorite = uiState.favorites.contains(file.absolutePath)
+                
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { 
+                        Text(if (isFavorite) viewModel.getString("favorites.cancel") else viewModel.getString("favorites.add")) 
+                    },
+                    state = rememberTooltipState()
+                ) {
+                    IconButton(
+                        onClick = {
+                            viewModel.onEvent(FileUiEvent.ToggleFavorite(file.absolutePath))
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Default.Star else Icons.Outlined.StarBorder,
+                            contentDescription = if (isFavorite) viewModel.getString("favorites.cancel") else viewModel.getString("favorites.add"),
                             tint = MaterialTheme.colors.primary,
                             modifier = Modifier.size(16.dp)
                         )
