@@ -205,7 +205,8 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
                 IconButton(onClick = {
                     DialogUtil.showWarning(
                         dialogState = dialogState,
-                        message = viewModel.getString("app.clearData.confirm").format(appInfo.packageName),
+                        message = viewModel.getString("app.clearData.confirm")
+                            .format(appInfo.packageName),
                         onConfirm = {
                             viewModel.onEvent(AppUiEvent.ClearData(appInfo.packageName))
                         },
@@ -224,7 +225,8 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
                 IconButton(onClick = {
                     DialogUtil.showWarning(
                         dialogState = dialogState,
-                        message = viewModel.getString("app.uninstall.confirm").format(appInfo.packageName),
+                        message = viewModel.getString("app.uninstall.confirm")
+                            .format(appInfo.packageName),
                         onConfirm = {
                             viewModel.onEvent(AppUiEvent.Uninstall(appInfo.packageName))
                         },
@@ -248,7 +250,8 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
 @Composable
 fun Header(uiState: AppUiState, viewModel: AppViewModel = viewModel()) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(64.dp).background(MaterialTheme.colors.background)
+        modifier = Modifier.fillMaxWidth().height(64.dp).clip(CardShape)
+            .background(MaterialTheme.colors.surface)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp)
@@ -267,13 +270,18 @@ fun Header(uiState: AppUiState, viewModel: AppViewModel = viewModel()) {
                 modifier = Modifier.weight(5f).align(Alignment.CenterVertically)
             )
             Row(Modifier.weight(1.5f)) {
-                Text("action", textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterVertically))
+                Text(
+                    "action",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
             }
         } else {
             Text(
                 text = "packageName",
                 textAlign = TextAlign.Start,
-                modifier = Modifier.weight(3.5f).padding(start = 4.dp).align(Alignment.CenterVertically)
+                modifier = Modifier.weight(3.5f).padding(start = 4.dp)
+                    .align(Alignment.CenterVertically)
             )
             Text(
                 text = "versionName",
@@ -308,7 +316,14 @@ fun Header(uiState: AppUiState, viewModel: AppViewModel = viewModel()) {
 @Composable
 fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
     val list = listOf(
-        process.pid, process.user, process.cpu, process.time, process.virt, process.res, process.shr, process.mem
+        process.pid,
+        process.user,
+        process.cpu,
+        process.time,
+        process.virt,
+        process.res,
+        process.shr,
+        process.mem
     )
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -324,11 +339,19 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
     ) {
         list.forEach { item ->
             SelectionContainer(Modifier.weight(1f)) {
-                Text(text = item, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterVertically))
+                Text(
+                    text = item,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
             }
         }
         SelectionContainer(Modifier.weight(5f)) {
-            Text(process.name, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterVertically))
+            Text(
+                process.name,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
         }
 
         Row(Modifier.weight(1.5f), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -366,7 +389,8 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
 @Composable
 fun HeaderTool(viewModel: AppViewModel, uiState: AppUiState) {
     Row(
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(bottom = 8.dp)
     ) {
         SearchBarDefaults.InputField(
             query = uiState.filter,
@@ -393,13 +417,15 @@ fun HeaderTool(viewModel: AppViewModel, uiState: AppUiState) {
                 if (uiState.filter.isNotEmpty()) {
                     IconButton(
                         onClick = { viewModel.onEvent(AppUiEvent.ChangeFilter("")) },
-                        modifier = Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colors.surface)
+                        modifier = Modifier.size(48.dp).clip(CircleShape)
+                            .background(MaterialTheme.colors.surface)
                     ) {
                         Icon(Icons.Default.Cancel, "")
                     }
                 }
             },
-            modifier = Modifier.weight(1f).clip(CircleShape).background(MaterialTheme.colors.surface)
+            modifier = Modifier.weight(1f).clip(CircleShape)
+                .background(MaterialTheme.colors.surface)
         )
 
         uiState.buttonList.filter { it.isShow() }.forEach { button ->
