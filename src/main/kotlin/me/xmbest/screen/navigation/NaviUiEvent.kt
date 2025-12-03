@@ -6,5 +6,5 @@ sealed class NaviUiEvent {
     class SelectLeftItem(val index: Int) : NaviUiEvent()
     class SelectDevice(val device: IDevice) : NaviUiEvent()
     class ShowDeviceList(val show: Boolean) : NaviUiEvent()
-    object RefreshDevice : NaviUiEvent()
+    data object RefreshDevice : NaviUiEvent()
 }

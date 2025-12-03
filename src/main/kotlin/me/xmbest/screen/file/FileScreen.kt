@@ -51,7 +51,6 @@ fun FileScreen(viewModel: FileViewModel = viewModel()) {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun FileScreenContent(viewModel: FileViewModel) {
     val lazyListState = rememberLazyListState()

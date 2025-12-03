@@ -91,7 +91,6 @@ private fun getParentPath(currentPath: String): String {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileHeader(viewModel: FileViewModel) {
     val uiState = viewModel.uiState.collectAsState().value
@@ -180,7 +179,6 @@ fun FileHeader(viewModel: FileViewModel) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BreadcrumbNavigation(
     viewModel: FileViewModel,

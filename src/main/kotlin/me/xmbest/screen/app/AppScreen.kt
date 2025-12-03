@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,15 +43,15 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import me.xmbest.LocalDialogState
@@ -65,6 +66,8 @@ import me.xmbest.theme.blue_primary
 import me.xmbest.theme.green_primary
 import me.xmbest.theme.yellow_primary
 import me.xmbest.util.DialogUtil
+
+private const val APP_ITEM_TAG = "AppItem"
 
 @Composable
 fun AppScreen(viewModel: AppViewModel = viewModel()) {
@@ -105,31 +108,167 @@ fun AppScreen(viewModel: AppViewModel = viewModel()) {
     }
 }
 
+private data class AppItemDetail(
+    val versionName: String,
+    val versionCode: String,
+    val minSdk: String,
+    val targetSdk: String,
+    val size: String,
+    val isLoading: Boolean,
+) {
+    val minTarget: String get() = "$minSdk/$targetSdk"
+
+    companion object {
+        fun from(appInfo: AppInfo, isLoading: Boolean) = AppItemDetail(
+            versionName = appInfo.versionName,
+            versionCode = appInfo.versionCode,
+            minSdk = appInfo.minSdk,
+            targetSdk = appInfo.targetSdk,
+            size = appInfo.size,
+            isLoading = isLoading
+        )
+    }
+}
+
+private data class AppItemColumn(
+    val text: String,
+    val weight: Float,
+    val textAlign: TextAlign = TextAlign.Center,
+)
+
+private data class AppAction(
+    val tooltip: String,
+    val icon: ImageVector,
+    val tint: Color,
+    val iconSize: Dp,
+    val onClick: () -> Unit,
+)
+
+@Composable
+private fun RowScope.AppInfoCell(column: AppItemColumn) {
+    SelectionContainer(Modifier.weight(column.weight)) {
+        Text(
+            text = column.text,
+            textAlign = column.textAlign,
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ActionIcon(action: AppAction) {
+    IconButton(onClick = action.onClick, modifier = Modifier.width(32.dp)) {
+        TooltipArea({ Text(action.tooltip) }) {
+            Icon(
+                imageVector = action.icon,
+                contentDescription = action.tooltip,
+                modifier = Modifier.size(action.iconSize),
+                tint = action.tint
+            )
+        }
+    }
+}
+
 @Composable
 fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
-
-    // 使用状态来跟踪版本信息
-    var versionName by remember { mutableStateOf(appInfo.versionName) }
-    var versionCode by remember { mutableStateOf(appInfo.versionCode) }
-    var size by remember { mutableStateOf(appInfo.size) }
-    var minSdk by remember { mutableStateOf(appInfo.minSdk) }
-    var targetSdk by remember { mutableStateOf(appInfo.targetSdk) }
-    var isLoading by remember { mutableStateOf(false) }
-
-    // 启动时加载版本信息
-    LaunchedEffect(appInfo.packageName) {
-        isLoading = true
-        appInfo.loadInfo()
-        versionName = appInfo.versionName
-        versionCode = appInfo.versionCode
-        size = appInfo.size
-        minSdk = appInfo.minSdk
-        targetSdk = appInfo.targetSdk
-        isLoading = false
+    val detail by produceState(
+        initialValue = AppItemDetail.from(appInfo, isLoading = true),
+        key1 = appInfo.packageName
+    ) {
+        runCatching { appInfo.loadInfo() }
+            .onFailure {
+                Log.e(APP_ITEM_TAG, "Failed to load info for ${appInfo.packageName}", it)
+            }
+        value = AppItemDetail.from(appInfo, isLoading = false)
     }
+    val loadingText = viewModel.getString("app.loading")
+    val dialogState = LocalDialogState.current
+    val errorColor = MaterialTheme.colors.error
+    val copyTooltip = viewModel.getString("file.copyPath")
+    val startTooltip = viewModel.getString("app.startApp")
+    val forceStopTooltip = viewModel.getString("app.forceStop")
+    val clearTooltip = viewModel.getString("settings.clearData")
+    val clearConfirmText = viewModel.getString("app.clearData.confirm")
+    val uninstallTooltip = viewModel.getString("app.uninstall")
+    val uninstallConfirmText = viewModel.getString("app.uninstall.confirm")
+    val columnData = listOf(
+        AppItemColumn(appInfo.packageName, 3.5f),
+        AppItemColumn(
+            text = if (detail.isLoading) loadingText else detail.versionName,
+            weight = 2f
+        ),
+        AppItemColumn(
+            text = if (detail.isLoading) loadingText else detail.versionCode,
+            weight = 2f
+        ),
+        AppItemColumn(
+            text = if (detail.isLoading) loadingText else detail.minTarget,
+            weight = 2f
+        ),
+        AppItemColumn(
+            text = if (detail.isLoading) loadingText else detail.size,
+            weight = 2f
+        )
+    )
+    val actions = listOf(
+        AppAction(
+            tooltip = copyTooltip,
+            icon = Icons.Outlined.ContentCopy,
+            tint = blue_primary,
+            iconSize = 18.dp
+        ) {
+            ClipboardUtil.setSysClipboardText(appInfo.path)
+        },
+        AppAction(
+            tooltip = startTooltip,
+            icon = Icons.Outlined.PlayArrow,
+            tint = green_primary,
+            iconSize = 24.dp
+        ) {
+            viewModel.onEvent(AppUiEvent.StartApp(appInfo.packageName))
+        },
+        AppAction(
+            tooltip = forceStopTooltip,
+            icon = Icons.Outlined.Close,
+            tint = yellow_primary,
+            iconSize = 20.dp
+        ) {
+            viewModel.onEvent(AppUiEvent.ForceStop(appInfo.packageName))
+        },
+        AppAction(
+            tooltip = clearTooltip,
+            icon = Icons.Outlined.CleaningServices,
+            tint = errorColor,
+            iconSize = 16.dp
+        ) {
+            DialogUtil.showWarning(
+                dialogState = dialogState,
+                message = clearConfirmText.format(appInfo.packageName),
+                onConfirm = {
+                    viewModel.onEvent(AppUiEvent.ClearData(appInfo.packageName))
+                },
+                onCancel = {}
+            )
+        },
+        AppAction(
+            tooltip = uninstallTooltip,
+            icon = Icons.Outlined.DeleteOutline,
+            tint = errorColor,
+            iconSize = 18.dp
+        ) {
+            DialogUtil.showWarning(
+                dialogState = dialogState,
+                message = uninstallConfirmText.format(appInfo.packageName),
+                onConfirm = {
+                    viewModel.onEvent(AppUiEvent.Uninstall(appInfo.packageName))
+                },
+                onCancel = {}
+            )
+        }
+    )
 
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -141,121 +280,10 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        SelectionContainer(Modifier.weight(3.5f)) {
-            Text(
-                text = appInfo.packageName,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-        }
-        SelectionContainer(Modifier.weight(2f)) {
-            Text(
-                text = if (isLoading) viewModel.getString("app.loading") else versionName,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-        }
-        SelectionContainer(Modifier.weight(2f)) {
-            Text(
-                text = if (isLoading) viewModel.getString("app.loading") else versionCode,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-        }
-        SelectionContainer(Modifier.weight(2f)) {
-            Text(
-                text = if (isLoading) viewModel.getString("app.loading") else "$minSdk/$targetSdk",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-        }
-        SelectionContainer(Modifier.weight(2f)) {
-            Text(
-                text = if (isLoading) viewModel.getString("app.loading") else size,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-        }
-        val dialogState = LocalDialogState.current
+        columnData.forEach { AppInfoCell(it) }
         Row(Modifier.weight(3.5f), horizontalArrangement = Arrangement.SpaceBetween) {
             if (isHovered) {
-                IconButton(onClick = {
-                    ClipboardUtil.setSysClipboardText(appInfo.path)
-                }, modifier = Modifier.width(32.dp)) {
-                    TooltipArea({ Text(viewModel.getString("file.copyPath")) }) {
-                        Icon(
-                            imageVector = Icons.Outlined.ContentCopy,
-                            contentDescription = "",
-                            modifier = Modifier.size(18.dp),
-                            tint = blue_primary
-                        )
-                    }
-                }
-                IconButton(onClick = {
-                    viewModel.onEvent(AppUiEvent.StartApp(appInfo.packageName))
-                }, modifier = Modifier.width(32.dp)) {
-                    TooltipArea({ Text(viewModel.getString("app.startApp")) }) {
-                        Icon(
-                            imageVector = Icons.Outlined.PlayArrow,
-                            contentDescription = "",
-                            modifier = Modifier.size(24.dp),
-                            tint = green_primary
-                        )
-                    }
-                }
-
-                IconButton(onClick = {
-                    viewModel.onEvent(AppUiEvent.ForceStop(appInfo.packageName))
-                }, modifier = Modifier.width(32.dp)) {
-                    TooltipArea({ Text(viewModel.getString("app.forceStop")) }) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = "",
-                            modifier = Modifier.size(20.dp),
-                            tint = yellow_primary
-                        )
-                    }
-                }
-                IconButton(onClick = {
-                    DialogUtil.showWarning(
-                        dialogState = dialogState,
-                        message = viewModel.getString("app.clearData.confirm")
-                            .format(appInfo.packageName),
-                        onConfirm = {
-                            viewModel.onEvent(AppUiEvent.ClearData(appInfo.packageName))
-                        },
-                        onCancel = {}
-                    )
-                }, modifier = Modifier.width(32.dp)) {
-                    TooltipArea({ Text(viewModel.getString("settings.clearData")) }) {
-                        Icon(
-                            imageVector = Icons.Outlined.CleaningServices,
-                            contentDescription = "",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colors.error
-                        )
-                    }
-                }
-                IconButton(onClick = {
-                    DialogUtil.showWarning(
-                        dialogState = dialogState,
-                        message = viewModel.getString("app.uninstall.confirm")
-                            .format(appInfo.packageName),
-                        onConfirm = {
-                            viewModel.onEvent(AppUiEvent.Uninstall(appInfo.packageName))
-                        },
-                        onCancel = {}
-                    )
-                }, modifier = Modifier.width(32.dp)) {
-                    TooltipArea({ Text(viewModel.getString("app.uninstall")) }) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = "",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colors.error
-                        )
-                    }
-                }
+                actions.forEach { ActionIcon(it) }
             }
         }
     }
