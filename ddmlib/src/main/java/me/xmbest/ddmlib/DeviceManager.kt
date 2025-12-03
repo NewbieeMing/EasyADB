@@ -58,7 +58,7 @@ object DeviceManager {
             devices.collectLatest {
                 if (it.isEmpty()) {
                     _device.update { null }
-                } else if (device.value == null) {
+                } else if (device.value == null || device.value !in devices.value) {
                     _device.update { devices.value.first() }
                 }
             }
