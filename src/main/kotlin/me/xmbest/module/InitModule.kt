@@ -19,7 +19,6 @@ object InitModule {
 
     fun init() {
         writeFile()
-        loadConfig()
         initAdb()
         FileKit.init("EasyADB")
     }
@@ -46,9 +45,5 @@ object InitModule {
     private fun initAdb() {
         val savedAdbPath = PreferencesUtil.get(PREFERENCES_ADB_PATH, Environment.Program.path)
         DeviceManager.initialize(savedAdbPath)
-    }
-
-    private fun loadConfig() {
-
     }
 }

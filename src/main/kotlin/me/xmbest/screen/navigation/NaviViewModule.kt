@@ -1,10 +1,12 @@
 package me.xmbest.screen.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BorderAll
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Toll
 import androidx.lifecycle.viewModelScope
 import com.android.ddmlib.IDevice
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +17,7 @@ import me.xmbest.base.BaseViewModel
 import me.xmbest.ddmlib.DeviceManager
 import me.xmbest.model.Page
 import me.xmbest.screen.app.AppScreen
+import me.xmbest.screen.customer.CustomerScreen
 import me.xmbest.screen.file.FileScreen
 import me.xmbest.screen.home.HomeScreen
 import me.xmbest.screen.settings.SettingsScreen
@@ -38,6 +41,12 @@ class NaviViewModule() : BaseViewModel<NaviUiState>() {
             Icons.Outlined.FolderOpen
         ) {
             FileScreen()
+        },
+        Page(
+            getString("router.item.quickActions"),
+            Icons.Outlined.Toll
+        ) {
+            CustomerScreen()
         },
         Page(
             getString("router.item.settings"),

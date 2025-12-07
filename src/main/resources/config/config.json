@@ -1,3 +1,65 @@
-{
-
-}
+[
+  {
+    "type": "INPUT_SEND",
+    "title": "文本输入",
+    "cmd": "input keyboard text \"{action}\"",
+    "template": "{action}",
+    "hint": "请输入文本",
+    "btnText": "确认"
+  },
+  {
+    "type": "BUTTON_GROUP",
+    "title": "系统设置",
+    "list": [
+      {
+        "btnText": "主页面",
+        "cmd": "adb shell am start com.android.settings/com.android.settings.Settings"
+      },
+      {
+        "btnText": "WIFI设置",
+        "cmd": "adb shell am start -a android.settings.WIFI_SETTINGS"
+      },
+      {
+        "btnText": "蓝牙设置",
+        "cmd": "adb shell am start -a android.settings.BLUETOOTH_SETTINGS"
+      },
+      {
+        "btnText": "通知使用权设置",
+        "cmd": "adb shell am start -a android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"
+      },
+      {
+        "btnText": "无障碍设置",
+        "cmd": "adb shell am start -a android.settings.ACCESSIBILITY_SETTINGS"
+      }
+    ]
+  },
+  {
+    "type": "BUTTON_GROUP",
+    "title": "显示设置",
+    "list": [
+      {
+        "btnText": "开指针位置",
+        "cmd": "adb shell settings put system pointer_location 1"
+      },
+      {
+        "btnText": "关指针位置",
+        "cmd": "adb shell settings put system pointer_location 0"
+      },
+      {
+        "btnText": "开点按操作反馈",
+        "cmd": "adb shell settings put system show_touches 1"
+      },
+      {
+        "btnText": "关点按操作反馈",
+        "cmd": "adb shell settings put system show_touches 0"
+      }
+    ]
+  },
+  {
+    "type": "SHELL_SEND",
+    "title": "shell",
+    "btnText": "执行",
+    "hintText": "输入对应命令",
+    "minHeight": 270
+  }
+]

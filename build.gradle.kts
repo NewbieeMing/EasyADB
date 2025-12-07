@@ -26,7 +26,7 @@ dependencies {
     // 扩展图标
     implementation(compose.materialIconsExtended)
 
-    implementation("com.alibaba.fastjson2:fastjson2-kotlin:${properties["fastjson2.version"]}")
+    implementation("com.google.code.gson:gson:${properties["gson.version"]}")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:${properties["kotlin.version"]}")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${properties["kotlin.version"]}")
 
