@@ -4,6 +4,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import me.xmbest.Config
@@ -32,7 +33,7 @@ fun App() {
 fun main() = application {
     InitModule.init()
     val windowState = Config.windowState.collectAsState()
-    Window(title = "EasyADB", onCloseRequest = ::exitApplication, state = windowState.value) {
+    Window(title = "EasyADB", onCloseRequest = ::exitApplication, state = windowState.value, icon = painterResource("icon/logo.ico")) {
         App()
     }
 }
