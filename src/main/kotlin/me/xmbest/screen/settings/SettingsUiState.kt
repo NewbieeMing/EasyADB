@@ -6,4 +6,6 @@ data class SettingsUiState(
     val adbPath: String,
     val customerAdbPath: String,
     val theme: Theme,
+    val screenshotSaveEnabled: Boolean,
+    val screenshotSavePath: String,
 )

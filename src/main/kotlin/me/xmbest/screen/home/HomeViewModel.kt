@@ -11,9 +11,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import me.xmbest.screenshotSaveAbsolutePath
+import me.xmbest.screenshotSaveEnabled
 import me.xmbest.base.BaseViewModel
 import me.xmbest.ddmlib.*
 import me.xmbest.ddmlib.DeviceOperate.findCurrentActivity
+import java.awt.Image
+import java.awt.image.BufferedImage
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import javax.imageio.ImageIO
 
 class HomeViewModel : BaseViewModel<HomeUiState>() {
 
@@ -143,8 +151,43 @@ class HomeViewModel : BaseViewModel<HomeUiState>() {
     }
 
     private fun handleScreenShot() {
-        DeviceOperate.screenshot()?.let {
-            ClipboardUtil.setClipboardImage(it)
+        DeviceOperate.screenshot()?.let { image ->
+            ClipboardUtil.setClipboardImage(image)
+            if (screenshotSaveEnabled) {
+                saveScreenshot(image)
+            }
         }
+    }
+
+    private fun saveScreenshot(image: Image) {
+        runCatching {
+            val directory = File(screenshotSaveAbsolutePath)
+            if (!directory.exists()) {
+                directory.mkdirs()
+            }
+            if (!directory.exists()) {
+                Log.e(TAG, "Screenshot save path not available: ${directory.absolutePath}")
+                return
+            }
+            val bufferedImage = toBufferedImage(image)
+            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+            val file = File(directory, "screenshot_$timestamp.png")
+            ImageIO.write(bufferedImage, "png", file)
+        }.onFailure { error ->
+            Log.e(TAG, "Save screenshot failed", error)
+        }
+    }
+
+    private fun toBufferedImage(image: Image): BufferedImage {
+        if (image is BufferedImage) {
+            return image
+        }
+        val width = image.getWidth(null).coerceAtLeast(1)
+        val height = image.getHeight(null).coerceAtLeast(1)
+        val bufferedImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+        val graphics = bufferedImage.createGraphics()
+        graphics.drawImage(image, 0, 0, null)
+        graphics.dispose()
+        return bufferedImage
     }
 }

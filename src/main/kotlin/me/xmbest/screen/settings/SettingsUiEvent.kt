@@ -6,6 +6,8 @@ import me.xmbest.model.Theme
 sealed class SettingsUiEvent {
     class UpdateTheme(val theme: Theme) : SettingsUiEvent()
     class UpdateAdbEnv(val environment: Environment) : SettingsUiEvent()
+    class UpdateScreenshotSaveEnabled(val enabled: Boolean) : SettingsUiEvent()
     data object UpdateCustomerAdb : SettingsUiEvent()
+    data object UpdateScreenshotSavePath : SettingsUiEvent()
     data object ClearData : SettingsUiEvent()
 }

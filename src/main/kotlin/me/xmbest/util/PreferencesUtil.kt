@@ -18,6 +18,16 @@ object PreferencesUtil {
     const val PREFERENCES_CUSTOMER_ADB_PATH = "settings.customer_adb_path"
 
     /**
+     * 截图保存路径
+     */
+    const val PREFERENCES_SCREENSHOT_SAVE_PATH = "settings.screenshot_save_path"
+
+    /**
+     * 截图保存开关
+     */
+    const val PREFERENCES_SCREENSHOT_SAVE_ENABLED = "settings.screenshot_save_enabled"
+
+    /**
      * 选中的主题
      */
     const val PREFERENCES_THEME = "settings.theme"

@@ -4,16 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Icon
@@ -23,22 +14,8 @@ import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,6 +41,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val savedCustomWindowSize = Config.getCustomWindowSizeDp()
     var customWidth by remember { mutableStateOf(savedCustomWindowSize.width.value.roundToInt().toString()) }
     var customHeight by remember { mutableStateOf(savedCustomWindowSize.height.value.roundToInt().toString()) }
+    val applyCustomWindowSize = {
+        val width = customWidth.toIntOrNull()
+        val height = customHeight.toIntOrNull()
+        if (width != null && width > 0 && height != null && height > 0) {
+            val sizeDp = DpSize(width.dp, height.dp)
+            Config.saveCustomWindowSizeDp(sizeDp)
+            Config.updateWindowSize(sizeDp)
+        }
+    }
 
     LaunchedEffect(uiState.customerAdbPath) {
         if (uiState.customerAdbPath != Environment.Custom.path) {
@@ -106,17 +92,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                     Config.WindowSizeMode.Follow -> {
                         Config.updateWindowSize(Config.defaultWindowSizeDp)
                     }
+
                     Config.WindowSizeMode.Remember -> {
                         Config.saveRememberWindowSizeDp(windowState.size)
                     }
+
                     Config.WindowSizeMode.Custom -> {
-                        val width = customWidth.toIntOrNull()
-                        val height = customHeight.toIntOrNull()
-                        if (width != null && width > 0 && height != null && height > 0) {
-                            val sizeDp = DpSize(width.dp, height.dp)
-                            Config.saveCustomWindowSizeDp(sizeDp)
-                            Config.updateWindowSize(sizeDp)
-                        }
+                        applyCustomWindowSize()
                     }
                 }
             },
@@ -126,42 +108,98 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             onCustomHeightChange = { value ->
                 customHeight = value.filter { it.isDigit() }
             },
-            onApplyCustom = {
-                val width = customWidth.toIntOrNull()
-                val height = customHeight.toIntOrNull()
-                if (width != null && width > 0 && height != null && height > 0) {
-                    val sizeDp = DpSize(width.dp, height.dp)
-                    Config.saveCustomWindowSizeDp(sizeDp)
-                    Config.updateWindowSize(sizeDp)
-                }
-            }
+            onApplyCustom = applyCustomWindowSize
         )
 
         LabeledSection(
             viewModel.getString("settings.other"),
             modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
         ) {
-            Button(
-                onClick = {
-                    DialogUtil.showWarning(
-                        dialogState = dialogState,
-                        title = viewModel.getString("settings.clearData.confirm.title"),
-                        message = viewModel.getString("settings.clearData.confirm.message"),
-                        confirmText = viewModel.getString("button.confirm"),
-                        cancelText = viewModel.getString("button.cancel"),
-                        onConfirm = {
-                            viewModel.onEvent(SettingsUiEvent.ClearData)
-                        },
-                        onCancel = {}
-                    )
-                },
-                colors = ButtonDefaults.buttonColors().copy(
-                    containerColor = MaterialTheme.colors.error,
-                    contentColor = MaterialTheme.colors.onError
-                ),
-            ) {
-                Text(text = viewModel.getString("settings.clearData"), color = MaterialTheme.colors.onError)
+
+            Column {
+                // 截图保存
+                ScreenshotSaveSection(
+                    enableLabel = viewModel.getString("settings.screenshot.save.enable"),
+                    pathLabel = viewModel.getString("settings.screenshot.save.path"),
+                    enabled = uiState.screenshotSaveEnabled,
+                    path = uiState.screenshotSavePath,
+                    onEnabledChange = { enabled ->
+                        viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSaveEnabled(enabled))
+                    },
+                    onChangePath = { viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSavePath) }
+                )
+
+                // 清除数据
+                Button(
+                    onClick = {
+                        DialogUtil.showWarning(
+                            dialogState = dialogState,
+                            title = viewModel.getString("settings.clearData.confirm.title"),
+                            message = viewModel.getString("settings.clearData.confirm.message"),
+                            confirmText = viewModel.getString("button.confirm"),
+                            cancelText = viewModel.getString("button.cancel"),
+                            onConfirm = {
+                                viewModel.onEvent(SettingsUiEvent.ClearData)
+                            },
+                            onCancel = {}
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors().copy(
+                        containerColor = MaterialTheme.colors.error,
+                        contentColor = MaterialTheme.colors.onError
+                    ),
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text(text = viewModel.getString("settings.clearData"), color = MaterialTheme.colors.onError)
+                }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ScreenshotSaveSection(
+    enableLabel: String,
+    pathLabel: String,
+    enabled: Boolean,
+    path: String,
+    onEnabledChange: (Boolean) -> Unit,
+    onChangePath: () -> Unit
+) {
+    val strings = PropertiesLocalization.create(Config.STRINGS_NAME)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = enableLabel, color = MaterialTheme.colors.onBackground)
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange
+            )
+        }
+
+        if (enabled) {
+            TextField(
+                path,
+                onValueChange = { },
+                modifier = Modifier.defaultMinSize(minWidth = 360.dp).padding(end = 10.dp),
+                singleLine = true,
+                enabled = false,
+                label = { Text(pathLabel) },
+                trailingIcon = {
+                    TooltipArea(tooltip = {
+                        Text(strings.get("settings.switch"))
+                    }) {
+                        Icon(
+                            Icons.Default.Edit,
+                            null,
+                            modifier = Modifier.size(24.dp).clickable { onChangePath() }
+                        )
+                    }
+                }
+            )
         }
     }
 }
@@ -222,7 +260,10 @@ private fun WindowSizeSection(
             }
 
             if (mode == Config.WindowSizeMode.Custom) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     TextField(
                         customWidth,
                         onValueChange = onCustomWidthChange,
@@ -240,7 +281,7 @@ private fun WindowSizeSection(
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                     )
                     val canApply = customWidth.toIntOrNull()?.let { it > 0 } == true &&
-                        customHeight.toIntOrNull()?.let { it > 0 } == true
+                            customHeight.toIntOrNull()?.let { it > 0 } == true
                     Button(onClick = onApplyCustom, enabled = canApply) {
                         Text(applyLabel)
                     }

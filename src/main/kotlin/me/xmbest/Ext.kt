@@ -6,6 +6,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import me.xmbest.model.DialogState
 import me.xmbest.util.PreferencesUtil
 import me.xmbest.util.PreferencesUtil.PREFERENCES_CUSTOMER_ADB_PATH
+import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_ENABLED
+import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_PATH
 import org.jetbrains.skiko.hostOs
 import java.io.File
 
@@ -41,6 +43,24 @@ val programAdbAbsolutePath: String =
  */
 val customerAdbAbsolutePath: String
     get() = PreferencesUtil.get(PREFERENCES_CUSTOMER_ADB_PATH, "")
+
+/**
+ * 截图默认保存目录
+ */
+val defaultScreenshotSavePath: String
+    get() = File(System.getProperty("user.home"), "Desktop").absolutePath
+
+/**
+ * 截图保存目录
+ */
+val screenshotSaveAbsolutePath: String
+    get() = PreferencesUtil.get(PREFERENCES_SCREENSHOT_SAVE_PATH, defaultScreenshotSavePath)
+
+/**
+ * 截图保存开关
+ */
+val screenshotSaveEnabled: Boolean
+    get() = PreferencesUtil.get(PREFERENCES_SCREENSHOT_SAVE_ENABLED, false)
 
 // 创建LocalSnackbarHostState，类似于LocalContext.current的使用方式
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {

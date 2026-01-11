@@ -5,7 +5,9 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.FileKitMode
 import io.github.vinceglb.filekit.dialogs.FileKitType
+import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
 import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -17,9 +19,12 @@ import me.xmbest.customerAdbAbsolutePath
 import me.xmbest.ddmlib.DeviceManager
 import me.xmbest.model.Environment
 import me.xmbest.model.Theme
+import me.xmbest.screenshotSaveAbsolutePath
 import me.xmbest.util.PreferencesUtil
 import me.xmbest.util.PreferencesUtil.PREFERENCES_ADB_PATH
 import me.xmbest.util.PreferencesUtil.PREFERENCES_CUSTOMER_ADB_PATH
+import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_ENABLED
+import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_PATH
 import me.xmbest.util.PreferencesUtil.PREFERENCES_THEME
 import org.jetbrains.skiko.hostOs
 import kotlin.system.exitProcess
@@ -32,7 +37,9 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
             SettingsUiState(
                 DeviceManager.adbPath.value,
                 customerAdbAbsolutePath,
-                Config.theme.value
+                Config.theme.value,
+                PreferencesUtil.get(PREFERENCES_SCREENSHOT_SAVE_ENABLED, false),
+                screenshotSaveAbsolutePath
             )
         )
 
@@ -55,7 +62,9 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
             when (event) {
                 is SettingsUiEvent.UpdateTheme -> changeTheme(event.theme)
                 is SettingsUiEvent.UpdateAdbEnv -> changeAdbEnv(event.environment)
+                is SettingsUiEvent.UpdateScreenshotSaveEnabled -> changeScreenshotSaveEnabled(event.enabled)
                 is SettingsUiEvent.UpdateCustomerAdb -> changeCustomerAdb()
+                is SettingsUiEvent.UpdateScreenshotSavePath -> changeScreenshotSavePath()
                 is SettingsUiEvent.ClearData -> clearData()
             }
         }
@@ -96,6 +105,20 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
             PreferencesUtil.set(PREFERENCES_THEME, newTheme.label)
             Config.changeTheme(newTheme)
         }
+    }
+
+    private fun changeScreenshotSaveEnabled(enabled: Boolean) {
+        PreferencesUtil.set(PREFERENCES_SCREENSHOT_SAVE_ENABLED, enabled)
+        _uiState.value = _uiState.value.copy(screenshotSaveEnabled = enabled)
+    }
+
+    private suspend fun changeScreenshotSavePath() {
+        val directory = FileKit.openDirectoryPicker(
+            title = getString("settings.screenshot.save.select")
+        ) ?: return
+        val path = directory.path
+        PreferencesUtil.set(PREFERENCES_SCREENSHOT_SAVE_PATH, path)
+        _uiState.value = _uiState.value.copy(screenshotSavePath = path)
     }
 
     private fun clearData() {
