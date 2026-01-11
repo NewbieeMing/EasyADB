@@ -8,4 +8,6 @@ data class SettingsUiState(
     val theme: Theme,
     val screenshotSaveEnabled: Boolean,
     val screenshotSavePath: String,
+    val cmdAutoCloseEnabled: Boolean,
+    val cmdAutoCloseTimeoutSeconds: Int,
 )

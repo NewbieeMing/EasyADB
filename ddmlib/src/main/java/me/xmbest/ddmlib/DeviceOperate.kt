@@ -7,7 +7,6 @@ import kotlinx.coroutines.*
 import java.awt.Image
 import java.io.File
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 object DeviceOperate {
     private const val TAG = "DeviceOperate"
@@ -27,11 +26,6 @@ object DeviceOperate {
      */
     private val topColumns = listOf("pid", "user", "%cpu", "time+", "%mem", "virt", "res", "shr", "name")
     val topHeadColumns = listOf("pid", "user", "cpu", "time", "mem", "virt", "res", "shr")
-
-    fun root(): Boolean {
-        Log.i(TAG, "adb root")
-        return device?.root() ?: false
-    }
 
     suspend fun startApp(packageName: String) {
         val activity = getLaunchActivity(packageName)
@@ -99,10 +93,6 @@ object DeviceOperate {
         shell("touch $path")
     }
 
-    fun chmod(path: String, auth: Int) {
-        Log.i(TAG, "adb shell chmod $auth $path")
-        shell("chmod $auth $path")
-    }
 
     /**
      * 查找应用启动activity
@@ -141,6 +131,8 @@ object DeviceOperate {
         targetPath: String,
         isWindows: Boolean = true,
         isMacOs: Boolean = false,
+        autoCloseEnabled: Boolean = true,
+        autoCloseTimeoutSeconds: Int = CMD_CLOSE_TIMEOUT,
         file: File
     ) {
         device?.let { device ->
@@ -159,14 +151,37 @@ object DeviceOperate {
                 commands.add(adbCommand)
                 commands.add("echo.")
                 commands.add("echo Executing: $adbCommand")
-                commands.add("echo Window will close in $CMD_CLOSE_TIMEOUT seconds...")
-                commands.add("timeout /t $CMD_CLOSE_TIMEOUT /nobreak > nul")
+                if (autoCloseEnabled) {
+                    val safeTimeout = autoCloseTimeoutSeconds.coerceAtLeast(0)
+                    commands.add("echo Window will close in $safeTimeout seconds...")
+                    commands.add("timeout /t $safeTimeout /nobreak > nul")
+                }
 
                 file.writeText(commands.joinToString("\r\n"))
-                command = "cmd.exe /c start cmd.exe /C ${file.absolutePath}"
+                command = if (autoCloseEnabled) {
+                    "cmd.exe /c start cmd.exe /C ${file.absolutePath}"
+                } else {
+                    "cmd.exe /c start cmd.exe /K ${file.absolutePath}"
+                }
             } else if (isMacOs) {
                 file.writeText(adbCommand)
-                command = "open -b com.apple.terminal ${file.absolutePath}"
+                command = if (autoCloseEnabled) {
+                    val safeTimeout = autoCloseTimeoutSeconds.coerceAtLeast(0)
+                    val scriptPath = file.absolutePath.replace("\"", "\\\"")
+                    val appleScript = """
+                        tell application "Terminal"
+                            do script "bash \"$scriptPath\""
+                            repeat while busy of front window
+                                delay 0.5
+                            end repeat
+                            delay $safeTimeout
+                            close front window
+                        end tell
+                    """.trimIndent()
+                    "osascript -e \"$appleScript\""
+                } else {
+                    "open -b com.apple.terminal ${file.absolutePath}"
+                }
             }
             CmdUtil.run(command)
         }
@@ -181,9 +196,24 @@ object DeviceOperate {
      * @param file 这里非windows需要传，即软件执行文件
      */
     fun push(
-        files: List<String>, remotePath: String, isWindows: Boolean = true, isMacOs: Boolean = false, file: File
+        files: List<String>,
+        remotePath: String,
+        isWindows: Boolean = true,
+        isMacOs: Boolean = false,
+        autoCloseEnabled: Boolean = true,
+        autoCloseTimeoutSeconds: Int = CMD_CLOSE_TIMEOUT,
+        file: File
     ) {
-        executeFileTransfer("push", files, remotePath, isWindows, isMacOs, file)
+        executeFileTransfer(
+            "push",
+            files,
+            remotePath,
+            isWindows,
+            isMacOs,
+            autoCloseEnabled,
+            autoCloseTimeoutSeconds,
+            file
+        )
     }
 
     /**
@@ -195,9 +225,24 @@ object DeviceOperate {
      * @param file 这里非windows需要传，即软件执行文件
      */
     fun pull(
-        files: List<String>, localPath: String, isWindows: Boolean = true, isMacOs: Boolean = false, file: File
+        files: List<String>,
+        localPath: String,
+        isWindows: Boolean = true,
+        isMacOs: Boolean = false,
+        autoCloseEnabled: Boolean = true,
+        autoCloseTimeoutSeconds: Int = CMD_CLOSE_TIMEOUT,
+        file: File
     ) {
-        executeFileTransfer("pull", files, localPath, isWindows, isMacOs, file)
+        executeFileTransfer(
+            "pull",
+            files,
+            localPath,
+            isWindows,
+            isMacOs,
+            autoCloseEnabled,
+            autoCloseTimeoutSeconds,
+            file
+        )
     }
 
     /**
@@ -205,7 +250,7 @@ object DeviceOperate {
      * @param remoteFilePath 安装路径
      * @return 是否安装成功
      */
-    suspend fun install(remoteFilePath: String) = suspendCoroutine {
+    suspend fun install(remoteFilePath: String) = suspendCancellableCoroutine {
         device?.installRemotePackage(remoteFilePath, true, object : InstallReceiver() {
             override fun done() {
                 it.resume(
@@ -241,7 +286,7 @@ object DeviceOperate {
     /**
      * 查找当前文件列表
      */
-    suspend fun ls(parentPath: String) = suspendCoroutine {
+    suspend fun ls(parentPath: String) = suspendCancellableCoroutine {
         fileListingService?.apply {
             getChildren(
                 FileListingService.FileEntry(
@@ -371,7 +416,7 @@ object DeviceOperate {
                     "$sizeInBytes B"
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "Unknown"
         }
     }
@@ -456,7 +501,7 @@ object DeviceOperate {
 
     fun shell(command: String) = device?.executeShellCommand(command, EmptyReceiver())
 
-    suspend fun shell(command: String, timeMillis: Long) = suspendCoroutine {
+    suspend fun shell(command: String, timeMillis: Long) = suspendCancellableCoroutine {
         coroutineScope.launch {
             var resume = false
             device?.executeShellCommand(command, object : MultiLineReceiver() {

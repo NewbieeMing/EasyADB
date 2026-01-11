@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.xmbest.FILE_SPLIT
 import me.xmbest.appStorageAbsolutePath
+import me.xmbest.cmdAutoCloseEnabled
+import me.xmbest.cmdAutoCloseTimeoutSeconds
 import me.xmbest.base.BaseViewModel
 import me.xmbest.ddmlib.DeviceOperate
 import me.xmbest.ddmlib.FileManager
@@ -308,6 +310,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 remotePath = remotePath,
                 isWindows = hostOs.isWindows,
                 isMacOs = hostOs.isMacOS,
+                autoCloseEnabled = cmdAutoCloseEnabled,
+                autoCloseTimeoutSeconds = cmdAutoCloseTimeoutSeconds,
                 file = File(appStorageAbsolutePath, exec.second)
             )
         }
@@ -325,6 +329,8 @@ class FileViewModel : BaseViewModel<FileUiState>() {
                 localPath = localPath,
                 isWindows = hostOs.isWindows,
                 isMacOs = hostOs.isMacOS,
+                autoCloseEnabled = cmdAutoCloseEnabled,
+                autoCloseTimeoutSeconds = cmdAutoCloseTimeoutSeconds,
                 file = File(appStorageAbsolutePath, exec.second)
             )
         }

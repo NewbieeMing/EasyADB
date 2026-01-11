@@ -28,6 +28,12 @@ object PreferencesUtil {
     const val PREFERENCES_SCREENSHOT_SAVE_ENABLED = "settings.screenshot_save_enabled"
 
     /**
+     * Windows 文件传输窗口自动关闭
+     */
+    const val PREFERENCES_CMD_AUTO_CLOSE_ENABLED = "settings.cmd_auto_close.enabled"
+    const val PREFERENCES_CMD_AUTO_CLOSE_TIMEOUT = "settings.cmd_auto_close.timeout"
+
+    /**
      * 选中的主题
      */
     const val PREFERENCES_THEME = "settings.theme"

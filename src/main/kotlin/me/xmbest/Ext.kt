@@ -5,6 +5,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.staticCompositionLocalOf
 import me.xmbest.model.DialogState
 import me.xmbest.util.PreferencesUtil
+import me.xmbest.util.PreferencesUtil.PREFERENCES_CMD_AUTO_CLOSE_ENABLED
+import me.xmbest.util.PreferencesUtil.PREFERENCES_CMD_AUTO_CLOSE_TIMEOUT
 import me.xmbest.util.PreferencesUtil.PREFERENCES_CUSTOMER_ADB_PATH
 import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_ENABLED
 import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_PATH
@@ -61,6 +63,15 @@ val screenshotSaveAbsolutePath: String
  */
 val screenshotSaveEnabled: Boolean
     get() = PreferencesUtil.get(PREFERENCES_SCREENSHOT_SAVE_ENABLED, false)
+
+/**
+ * Windows 文件传输窗口自动关闭
+ */
+val cmdAutoCloseEnabled: Boolean
+    get() = PreferencesUtil.get(PREFERENCES_CMD_AUTO_CLOSE_ENABLED, true)
+
+val cmdAutoCloseTimeoutSeconds: Int
+    get() = PreferencesUtil.get(PREFERENCES_CMD_AUTO_CLOSE_TIMEOUT, 3)
 
 // 创建LocalSnackbarHostState，类似于LocalContext.current的使用方式
 val LocalSnackbarHostState = staticCompositionLocalOf<SnackbarHostState> {

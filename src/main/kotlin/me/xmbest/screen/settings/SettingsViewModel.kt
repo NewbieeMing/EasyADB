@@ -22,6 +22,8 @@ import me.xmbest.model.Theme
 import me.xmbest.screenshotSaveAbsolutePath
 import me.xmbest.util.PreferencesUtil
 import me.xmbest.util.PreferencesUtil.PREFERENCES_ADB_PATH
+import me.xmbest.util.PreferencesUtil.PREFERENCES_CMD_AUTO_CLOSE_ENABLED
+import me.xmbest.util.PreferencesUtil.PREFERENCES_CMD_AUTO_CLOSE_TIMEOUT
 import me.xmbest.util.PreferencesUtil.PREFERENCES_CUSTOMER_ADB_PATH
 import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_ENABLED
 import me.xmbest.util.PreferencesUtil.PREFERENCES_SCREENSHOT_SAVE_PATH
@@ -39,7 +41,9 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
                 customerAdbAbsolutePath,
                 Config.theme.value,
                 PreferencesUtil.get(PREFERENCES_SCREENSHOT_SAVE_ENABLED, false),
-                screenshotSaveAbsolutePath
+                screenshotSaveAbsolutePath,
+                PreferencesUtil.get(PREFERENCES_CMD_AUTO_CLOSE_ENABLED, true),
+                PreferencesUtil.get(PREFERENCES_CMD_AUTO_CLOSE_TIMEOUT, 3)
             )
         )
 
@@ -63,6 +67,8 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
                 is SettingsUiEvent.UpdateTheme -> changeTheme(event.theme)
                 is SettingsUiEvent.UpdateAdbEnv -> changeAdbEnv(event.environment)
                 is SettingsUiEvent.UpdateScreenshotSaveEnabled -> changeScreenshotSaveEnabled(event.enabled)
+                is SettingsUiEvent.UpdateCmdAutoCloseEnabled -> changeCmdAutoCloseEnabled(event.enabled)
+                is SettingsUiEvent.UpdateCmdAutoCloseTimeout -> changeCmdAutoCloseTimeout(event.seconds)
                 is SettingsUiEvent.UpdateCustomerAdb -> changeCustomerAdb()
                 is SettingsUiEvent.UpdateScreenshotSavePath -> changeScreenshotSavePath()
                 is SettingsUiEvent.ClearData -> clearData()
@@ -110,6 +116,17 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
     private fun changeScreenshotSaveEnabled(enabled: Boolean) {
         PreferencesUtil.set(PREFERENCES_SCREENSHOT_SAVE_ENABLED, enabled)
         _uiState.value = _uiState.value.copy(screenshotSaveEnabled = enabled)
+    }
+
+    private fun changeCmdAutoCloseEnabled(enabled: Boolean) {
+        PreferencesUtil.set(PREFERENCES_CMD_AUTO_CLOSE_ENABLED, enabled)
+        _uiState.value = _uiState.value.copy(cmdAutoCloseEnabled = enabled)
+    }
+
+    private fun changeCmdAutoCloseTimeout(seconds: Int) {
+        val safeSeconds = seconds.coerceAtLeast(0)
+        PreferencesUtil.set(PREFERENCES_CMD_AUTO_CLOSE_TIMEOUT, safeSeconds)
+        _uiState.value = _uiState.value.copy(cmdAutoCloseTimeoutSeconds = safeSeconds)
     }
 
     private suspend fun changeScreenshotSavePath() {

@@ -41,6 +41,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val savedCustomWindowSize = Config.getCustomWindowSizeDp()
     var customWidth by remember { mutableStateOf(savedCustomWindowSize.width.value.roundToInt().toString()) }
     var customHeight by remember { mutableStateOf(savedCustomWindowSize.height.value.roundToInt().toString()) }
+    var cmdAutoCloseTimeout by remember {
+        mutableStateOf(uiState.cmdAutoCloseTimeoutSeconds.toString())
+    }
     val applyCustomWindowSize = {
         val width = customWidth.toIntOrNull()
         val height = customHeight.toIntOrNull()
@@ -50,11 +53,21 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
             Config.updateWindowSize(sizeDp)
         }
     }
+    val onCmdAutoCloseTimeoutChange: (String) -> Unit = { value ->
+        val filtered = value.filter { it.isDigit() }
+        cmdAutoCloseTimeout = filtered
+        filtered.toIntOrNull()?.let { seconds ->
+            viewModel.onEvent(SettingsUiEvent.UpdateCmdAutoCloseTimeout(seconds))
+        }
+    }
 
     LaunchedEffect(uiState.customerAdbPath) {
         if (uiState.customerAdbPath != Environment.Custom.path) {
             viewModel.onEvent(SettingsUiEvent.UpdateAdbEnv(Environment.Custom))
         }
+    }
+    LaunchedEffect(uiState.cmdAutoCloseTimeoutSeconds) {
+        cmdAutoCloseTimeout = uiState.cmdAutoCloseTimeoutSeconds.toString()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -63,8 +76,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 title = viewModel.getString("theme.setting"),
                 themeList = Config.themeList,
                 selectedTheme = uiState.theme,
-                onThemeSelected = { viewModel.onEvent(SettingsUiEvent.UpdateTheme(it)) }
-            )
+                onThemeSelected = { viewModel.onEvent(SettingsUiEvent.UpdateTheme(it)) })
 
             AdbConfigSection(
                 title = viewModel.getString("adb.config"),
@@ -72,8 +84,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 selectedPath = uiState.adbPath,
                 customerPath = uiState.customerAdbPath,
                 onEnvSelected = { viewModel.onEvent(SettingsUiEvent.UpdateAdbEnv(it)) },
-                onCustomerChange = { viewModel.onEvent(SettingsUiEvent.UpdateCustomerAdb) }
-            )
+                onCustomerChange = { viewModel.onEvent(SettingsUiEvent.UpdateCustomerAdb) })
 
             WindowSizeSection(
                 title = viewModel.getString("settings.window.size"),
@@ -112,58 +123,139 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 onApplyCustom = applyCustomWindowSize
             )
 
-            LabeledSection(
-                viewModel.getString("settings.other"),
-                modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
-            ) {
-
-                Column {
-                    // 截图保存
-                    ScreenshotSaveSection(
-                        enableLabel = viewModel.getString("settings.screenshot.save.enable"),
-                        pathLabel = viewModel.getString("settings.screenshot.save.path"),
-                        enabled = uiState.screenshotSaveEnabled,
-                        path = uiState.screenshotSavePath,
-                        onEnabledChange = { enabled ->
-                            viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSaveEnabled(enabled))
-                        },
-                        onChangePath = { viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSavePath) }
-                    )
-
-                    // 清除数据
-                    Button(
-                        onClick = {
-                            DialogUtil.showWarning(
-                                dialogState = dialogState,
-                                title = viewModel.getString("settings.clearData.confirm.title"),
-                                message = viewModel.getString("settings.clearData.confirm.message"),
-                                confirmText = viewModel.getString("button.confirm"),
-                                cancelText = viewModel.getString("button.cancel"),
-                                onConfirm = {
-                                    viewModel.onEvent(SettingsUiEvent.ClearData)
-                                },
-                                onCancel = {}
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors().copy(
-                            containerColor = MaterialTheme.colors.error,
-                            contentColor = MaterialTheme.colors.onError
-                        ),
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text(text = viewModel.getString("settings.clearData"), color = MaterialTheme.colors.onError)
-                    }
-                }
-            }
+            OtherSettingsSection(
+                title = viewModel.getString("settings.other"),
+                screenshotEnableLabel = viewModel.getString("settings.screenshot.save.enable"),
+                screenshotPathLabel = viewModel.getString("settings.screenshot.save.path"),
+                cmdAutoCloseEnableLabel = viewModel.getString("settings.cmd.autoClose.enable"),
+                cmdAutoCloseTimeoutLabel = viewModel.getString("settings.cmd.autoClose.timeout"),
+                clearDataLabel = viewModel.getString("settings.clearData"),
+                clearDataTitle = viewModel.getString("settings.clearData.confirm.title"),
+                clearDataMessage = viewModel.getString("settings.clearData.confirm.message"),
+                confirmLabel = viewModel.getString("button.confirm"),
+                cancelLabel = viewModel.getString("button.cancel"),
+                screenshotSaveEnabled = uiState.screenshotSaveEnabled,
+                screenshotSavePath = uiState.screenshotSavePath,
+                cmdAutoCloseEnabled = uiState.cmdAutoCloseEnabled,
+                cmdAutoCloseTimeout = cmdAutoCloseTimeout,
+                onScreenshotEnabledChange = { enabled ->
+                    viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSaveEnabled(enabled))
+                },
+                onScreenshotPathChange = { viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSavePath) },
+                onCmdAutoCloseEnabledChange = { enabled ->
+                    viewModel.onEvent(SettingsUiEvent.UpdateCmdAutoCloseEnabled(enabled))
+                },
+                onCmdAutoCloseTimeoutChange = onCmdAutoCloseTimeoutChange,
+                onClearData = { viewModel.onEvent(SettingsUiEvent.ClearData) },
+                dialogState = dialogState
+            )
         }
 
         Box(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
-            contentAlignment = Alignment.BottomEnd
+            modifier = Modifier.fillMaxSize().padding(10.dp), contentAlignment = Alignment.BottomEnd
         ) {
             Text(
                 text = Config.buildVersion,
-                color = MaterialTheme.colors.onBackground.copy(0.6f)
+                color = MaterialTheme.colors.onBackground
+            )
+        }
+    }
+}
+
+@Composable
+private fun OtherSettingsSection(
+    title: String,
+    screenshotEnableLabel: String,
+    screenshotPathLabel: String,
+    cmdAutoCloseEnableLabel: String,
+    cmdAutoCloseTimeoutLabel: String,
+    clearDataLabel: String,
+    clearDataTitle: String,
+    clearDataMessage: String,
+    confirmLabel: String,
+    cancelLabel: String,
+    screenshotSaveEnabled: Boolean,
+    screenshotSavePath: String,
+    cmdAutoCloseEnabled: Boolean,
+    cmdAutoCloseTimeout: String,
+    onScreenshotEnabledChange: (Boolean) -> Unit,
+    onScreenshotPathChange: () -> Unit,
+    onCmdAutoCloseEnabledChange: (Boolean) -> Unit,
+    onCmdAutoCloseTimeoutChange: (String) -> Unit,
+    onClearData: () -> Unit,
+    dialogState: MutableState<me.xmbest.model.DialogState>
+) {
+    LabeledSection(
+        title,
+        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
+    ) {
+        Column {
+            ScreenshotSaveSection(
+                enableLabel = screenshotEnableLabel,
+                pathLabel = screenshotPathLabel,
+                enabled = screenshotSaveEnabled,
+                path = screenshotSavePath,
+                onEnabledChange = onScreenshotEnabledChange,
+                onChangePath = onScreenshotPathChange
+            )
+
+            CmdAutoCloseSection(
+                enableLabel = cmdAutoCloseEnableLabel,
+                timeoutLabel = cmdAutoCloseTimeoutLabel,
+                enabled = cmdAutoCloseEnabled,
+                timeout = cmdAutoCloseTimeout,
+                onEnabledChange = onCmdAutoCloseEnabledChange,
+                onTimeoutChange = onCmdAutoCloseTimeoutChange
+            )
+
+            Button(
+                onClick = {
+                    DialogUtil.showWarning(
+                        dialogState = dialogState,
+                        title = clearDataTitle,
+                        message = clearDataMessage,
+                        confirmText = confirmLabel,
+                        cancelText = cancelLabel,
+                        onConfirm = onClearData,
+                        onCancel = {}
+                    )
+                },
+                colors = ButtonDefaults.buttonColors().copy(
+                    containerColor = MaterialTheme.colors.error,
+                    contentColor = MaterialTheme.colors.onError
+                ),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Text(text = clearDataLabel, color = MaterialTheme.colors.onError)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CmdAutoCloseSection(
+    enableLabel: String,
+    timeoutLabel: String,
+    enabled: Boolean,
+    timeout: String,
+    onEnabledChange: (Boolean) -> Unit,
+    onTimeoutChange: (String) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 8.dp)
+    ) {
+        Text(text = enableLabel, color = MaterialTheme.colors.onBackground)
+        Switch(checked = enabled, onCheckedChange = onEnabledChange)
+        if (enabled) {
+            TextField(
+                value = timeout,
+                onValueChange = onTimeoutChange,
+                modifier = Modifier.defaultMinSize(minWidth = 120.dp),
+                singleLine = true,
+                label = { Text(timeoutLabel) },
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
             )
         }
     }
@@ -182,13 +274,11 @@ private fun ScreenshotSaveSection(
     val strings = PropertiesLocalization.create(Config.STRINGS_NAME)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = enableLabel, color = MaterialTheme.colors.onBackground)
             Switch(
-                checked = enabled,
-                onCheckedChange = onEnabledChange
+                checked = enabled, onCheckedChange = onEnabledChange
             )
         }
 
@@ -205,13 +295,9 @@ private fun ScreenshotSaveSection(
                         Text(strings.get("settings.switch"))
                     }) {
                         Icon(
-                            Icons.Default.Edit,
-                            null,
-                            modifier = Modifier.size(24.dp).clickable { onChangePath() }
-                        )
+                            Icons.Default.Edit, null, modifier = Modifier.size(24.dp).clickable { onChangePath() })
                     }
-                }
-            )
+                })
         }
     }
 }
@@ -234,8 +320,7 @@ private fun WindowSizeSection(
     onApplyCustom: () -> Unit
 ) {
     LabeledSection(
-        title = title,
-        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
+        title = title, modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SingleChoiceSegmentedButtonRow {
@@ -246,22 +331,14 @@ private fun WindowSizeSection(
                 )
                 modes.forEachIndexed { index, (value, label) ->
                     SegmentedButton(
-                        selected = mode == value,
-                        onClick = { onModeChange(value) },
-                        label = {
+                        selected = mode == value, onClick = { onModeChange(value) }, label = {
                             Text(
-                                text = label,
-                                color = if (mode == value)
-                                    MaterialTheme.colors.onPrimary
-                                else
-                                    MaterialTheme.colors.onSurface
+                                text = label, color = if (mode == value) MaterialTheme.colors.onPrimary
+                                else MaterialTheme.colors.onSurface
                             )
-                        },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = modes.size
-                        ),
-                        colors = SegmentedButtonDefaults.colors(
+                        }, shape = SegmentedButtonDefaults.itemShape(
+                            index = index, count = modes.size
+                        ), colors = SegmentedButtonDefaults.colors(
                             activeContainerColor = MaterialTheme.colors.primary,
                             activeContentColor = MaterialTheme.colors.onPrimary,
                             inactiveContainerColor = MaterialTheme.colors.surface,
@@ -273,8 +350,7 @@ private fun WindowSizeSection(
 
             if (mode == Config.WindowSizeMode.Custom) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextField(
                         customWidth,
@@ -292,8 +368,8 @@ private fun WindowSizeSection(
                         label = { Text(heightLabel) },
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
                     )
-                    val canApply = customWidth.toIntOrNull()?.let { it > 0 } == true &&
-                            customHeight.toIntOrNull()?.let { it > 0 } == true
+                    val canApply = customWidth.toIntOrNull()?.let { it > 0 } == true && customHeight.toIntOrNull()
+                        ?.let { it > 0 } == true
                     Button(onClick = onApplyCustom, enabled = canApply) {
                         Text(applyLabel)
                     }
@@ -305,43 +381,29 @@ private fun WindowSizeSection(
 
 @Composable
 private fun ThemeSettingsSection(
-    title: String,
-    themeList: List<Theme>,
-    selectedTheme: Theme?,
-    onThemeSelected: (Theme) -> Unit
+    title: String, themeList: List<Theme>, selectedTheme: Theme?, onThemeSelected: (Theme) -> Unit
 ) {
     LabeledSection(
-        title = title,
-        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
+        title = title, modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
     ) {
         ThemeSelectionGrid(
-            themeList = themeList,
-            selectedTheme = selectedTheme,
-            onThemeSelected = onThemeSelected
+            themeList = themeList, selectedTheme = selectedTheme, onThemeSelected = onThemeSelected
         )
     }
 }
 
 @Composable
 private fun ThemeSelectionGrid(
-    themeList: List<Theme>,
-    selectedTheme: Theme?,
-    onThemeSelected: (Theme) -> Unit
+    themeList: List<Theme>, selectedTheme: Theme?, onThemeSelected: (Theme) -> Unit
 ) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(MaterialTheme.colors.surface)
-            .padding(12.dp)
+        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colors.surface).padding(12.dp)
     ) {
         themeList.forEach { item ->
             ThemeColorButton(
-                theme = item,
-                isSelected = item == selectedTheme,
-                onClick = { onThemeSelected(item) }
-            )
+                theme = item, isSelected = item == selectedTheme, onClick = { onThemeSelected(item) })
         }
     }
 }
@@ -349,9 +411,7 @@ private fun ThemeSelectionGrid(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeColorButton(
-    theme: Theme,
-    isSelected: Boolean,
-    onClick: () -> Unit
+    theme: Theme, isSelected: Boolean, onClick: () -> Unit
 ) {
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
@@ -359,18 +419,13 @@ private fun ThemeColorButton(
         state = rememberTooltipState()
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(theme.color.primary, theme.color.background),
-                        startX = 0f,
-                        endX = Float.POSITIVE_INFINITY
-                    )
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(
+                Brush.horizontalGradient(
+                    colors = listOf(theme.color.primary, theme.color.background),
+                    startX = 0f,
+                    endX = Float.POSITIVE_INFINITY
                 )
-                .clickable { onClick() },
-            contentAlignment = Alignment.Center
+            ).clickable { onClick() }, contentAlignment = Alignment.Center
         ) {
             if (isSelected) {
                 Icon(
@@ -396,14 +451,11 @@ private fun AdbConfigSection(
 ) {
     val strings = PropertiesLocalization.create(Config.STRINGS_NAME)
     LabeledSection(
-        title = title,
-        modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
+        title = title, modifier = Modifier.fillMaxWidth().padding(start = 6.dp, top = 6.dp)
     ) {
         Column {
             AdbEnvironmentSelector(
-                envList = envList,
-                selectedPath = selectedPath,
-                onEnvSelected = onEnvSelected
+                envList = envList, selectedPath = selectedPath, onEnvSelected = onEnvSelected
             )
 
             if (selectedPath !in listOf(Environment.System.path, Environment.Program.path)) {
@@ -417,16 +469,12 @@ private fun AdbConfigSection(
                             Text(strings.get("settings.switch"))
                         }) {
                             Icon(
-                                Icons.Default.Edit,
-                                null,
-                                modifier = Modifier.size(24.dp).clickable {
+                                Icons.Default.Edit, null, modifier = Modifier.size(24.dp).clickable {
                                     onCustomerChange()
-                                }
-                            )
+                                })
                         }
 
-                    }
-                )
+                    })
             }
         }
     }
@@ -434,29 +482,19 @@ private fun AdbConfigSection(
 
 @Composable
 private fun AdbEnvironmentSelector(
-    envList: List<Pair<String, Environment>>,
-    selectedPath: String,
-    onEnvSelected: (Environment) -> Unit
+    envList: List<Pair<String, Environment>>, selectedPath: String, onEnvSelected: (Environment) -> Unit
 ) {
     SingleChoiceSegmentedButtonRow {
         envList.forEachIndexed { index, (label, env) ->
             SegmentedButton(
-                selected = env.path == selectedPath,
-                onClick = { onEnvSelected(env) },
-                label = {
+                selected = env.path == selectedPath, onClick = { onEnvSelected(env) }, label = {
                     Text(
-                        text = label,
-                        color = if (env.path == selectedPath)
-                            MaterialTheme.colors.onPrimary
-                        else
-                            MaterialTheme.colors.onSurface
+                        text = label, color = if (env.path == selectedPath) MaterialTheme.colors.onPrimary
+                        else MaterialTheme.colors.onSurface
                     )
-                },
-                shape = SegmentedButtonDefaults.itemShape(
-                    index = index,
-                    count = envList.size
-                ),
-                colors = SegmentedButtonDefaults.colors(
+                }, shape = SegmentedButtonDefaults.itemShape(
+                    index = index, count = envList.size
+                ), colors = SegmentedButtonDefaults.colors(
                     activeContainerColor = MaterialTheme.colors.primary,
                     activeContentColor = MaterialTheme.colors.onPrimary,
                     inactiveContainerColor = MaterialTheme.colors.surface,
