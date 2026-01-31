@@ -72,10 +72,22 @@ class NaviViewModule() : BaseViewModel<NaviUiState>() {
 
     fun onEvent(event: NaviUiEvent) {
         when (event) {
-            is NaviUiEvent.SelectLeftItem -> selectLeftItem(event.index)
-            is NaviUiEvent.SelectDevice -> selectDevice(event.device)
-            is NaviUiEvent.ShowDeviceList -> showDeviceList(event.show)
-            is NaviUiEvent.RefreshDevice -> refreshDevice()
+            is NaviUiEvent.Navigation -> handleNavigationEvent(event)
+            is NaviUiEvent.DeviceManagement -> handleDeviceManagementEvent(event)
+        }
+    }
+
+    private fun handleNavigationEvent(event: NaviUiEvent.Navigation) {
+        when (event) {
+            is NaviUiEvent.Navigation.SelectLeftItem -> selectLeftItem(event.index)
+        }
+    }
+
+    private fun handleDeviceManagementEvent(event: NaviUiEvent.DeviceManagement) {
+        when (event) {
+            is NaviUiEvent.DeviceManagement.SelectDevice -> selectDevice(event.device)
+            is NaviUiEvent.DeviceManagement.ShowDeviceList -> showDeviceList(event.show)
+            is NaviUiEvent.DeviceManagement.RefreshDevice -> refreshDevice()
         }
     }
 

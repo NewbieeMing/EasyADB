@@ -246,7 +246,7 @@ private fun ControlPanel(
                     .background(MaterialTheme.colors.background)
             ) {
                 IconButton(
-                    onClick = { onEvent(HomeUiEvent.InputKey(66)) },
+                    onClick = { onEvent(HomeUiEvent.DeviceControl.InputKey(66)) },
                     modifier = Modifier.size(64.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colors.surface)
@@ -258,7 +258,7 @@ private fun ControlPanel(
             }
 
             IconButton(
-                onClick = { onEvent(HomeUiEvent.InputKey(21)) },
+                onClick = { onEvent(HomeUiEvent.DeviceControl.InputKey(21)) },
                 modifier = Modifier.size(24.dp)
                     .align(Alignment.CenterStart)
             ) {
@@ -266,7 +266,7 @@ private fun ControlPanel(
             }
 
             IconButton(
-                onClick = { onEvent(HomeUiEvent.InputKey(19)) },
+                onClick = { onEvent(HomeUiEvent.DeviceControl.InputKey(19)) },
                 modifier = Modifier.size(24.dp)
                     .align(Alignment.TopCenter)
             ) {
@@ -274,7 +274,7 @@ private fun ControlPanel(
             }
 
             IconButton(
-                onClick = { onEvent(HomeUiEvent.InputKey(22)) },
+                onClick = { onEvent(HomeUiEvent.DeviceControl.InputKey(22)) },
                 modifier = Modifier.size(24.dp)
                     .align(Alignment.CenterEnd)
             ) {
@@ -282,7 +282,7 @@ private fun ControlPanel(
             }
 
             IconButton(
-                onClick = { onEvent(HomeUiEvent.InputKey(20)) },
+                onClick = { onEvent(HomeUiEvent.DeviceControl.InputKey(20)) },
                 modifier = Modifier.size(24.dp)
                     .align(Alignment.BottomCenter)
             ) {
@@ -358,7 +358,7 @@ fun SecondRow(viewModel: HomeViewModel, uiState: HomeUiState) {
                         title = viewModel.getString("home.currentActivity.copied"),
                         message = activity
                     )
-                    viewModel.onEvent(HomeUiEvent.ClearCurrentActivity)
+                    viewModel.onEvent(HomeUiEvent.AppOperation.ClearCurrentActivity)
                 }
 
                 // 渲染统一的功能项列表
@@ -374,11 +374,11 @@ fun SecondRow(viewModel: HomeViewModel, uiState: HomeUiState) {
                                 message = viewModel.getString(actionItem.confirmationMessageKey),
                                 onCancel = {},
                                 onConfirm = {
-                                    viewModel.onEvent(HomeUiEvent.ExecuteAction(actionItem.action))
+                                    viewModel.onEvent(HomeUiEvent.Action.ExecuteAction(actionItem.action))
                                 }
                             )
                         } else {
-                            viewModel.onEvent(HomeUiEvent.ExecuteAction(actionItem.action))
+                            viewModel.onEvent(HomeUiEvent.Action.ExecuteAction(actionItem.action))
                         }
                     }
                 }
@@ -386,7 +386,7 @@ fun SecondRow(viewModel: HomeViewModel, uiState: HomeUiState) {
                 uiState.keyEventList.forEach {
                     Item(
                         icon = it.second, it.first, isClick = uiState.device != null, click = {
-                            viewModel.onEvent(HomeUiEvent.InputKey(it.third))
+                            viewModel.onEvent(HomeUiEvent.DeviceControl.InputKey(it.third))
                         }
                     )
                 }

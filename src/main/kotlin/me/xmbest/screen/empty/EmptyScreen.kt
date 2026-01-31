@@ -79,7 +79,7 @@ fun EmptyScreen(viewModel: NaviViewModule = viewModel()) {
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colors.primary)
                     .clickable {
-                        viewModel.onEvent(NaviUiEvent.RefreshDevice)
+                        viewModel.onEvent(NaviUiEvent.DeviceManagement.RefreshDevice)
                     }
                     .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {

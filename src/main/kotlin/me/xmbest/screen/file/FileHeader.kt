@@ -111,7 +111,7 @@ fun FileHeader(viewModel: FileViewModel) {
         BreadcrumbNavigation(
             viewModel,
             pathParts = pathParts,
-            onNavigate = { path -> viewModel.onEvent(FileUiEvent.NavigateToPath(path)) },
+            onNavigate = { path -> viewModel.onEvent(FileUiEvent.Navigation.NavigateToPath(path)) },
             onCopyPath = { path -> ClipboardUtil.setSysClipboardText(path.ifEmpty { FILE_SPLIT }) },
             copyPathLabel = viewModel.getString("file.copyPath")
         )
@@ -120,11 +120,11 @@ fun FileHeader(viewModel: FileViewModel) {
             viewModel = viewModel,
             showBackButton = uiState.parentPath != FILE_SPLIT,
             showDelectFilesButton = uiState.children.isNotEmpty(),
-            onBackClick = { viewModel.onEvent(FileUiEvent.NavigateToPath(getParentPath(uiState.parentPath))) },
-            onRefreshClick = { viewModel.onEvent(FileUiEvent.Refresh) },
+            onBackClick = { viewModel.onEvent(FileUiEvent.Navigation.NavigateToPath(getParentPath(uiState.parentPath))) },
+            onRefreshClick = { viewModel.onEvent(FileUiEvent.Navigation.Refresh) },
             onNewFolderClick = { showCreateFolderDialog = true },
             onNewFileClick = { showCreateFileDialog = true },
-            onImportClick = { viewModel.onEvent(FileUiEvent.Imported) },
+            onImportClick = { viewModel.onEvent(FileUiEvent.FileOperation.Imported) },
             onDeleteAllClick = { showDeleteAllDialog = true },
             backLabel = viewModel.getString("file.back"),
             refreshLabel = viewModel.getString("file.refresh"),
@@ -141,7 +141,7 @@ fun FileHeader(viewModel: FileViewModel) {
             dialogState = dialogState,
             title = viewModel.getString("file.newFolder"),
             onConfirm = { folderName ->
-                viewModel.onEvent(FileUiEvent.CreateFolder(folderName))
+                viewModel.onEvent(FileUiEvent.FileOperation.CreateFolder(folderName))
                 showCreateFolderDialog = false
             },
             onCancel = {
@@ -156,7 +156,7 @@ fun FileHeader(viewModel: FileViewModel) {
             dialogState = dialogState,
             title = viewModel.getString("file.newFile"),
             onConfirm = { fileName ->
-                viewModel.onEvent(FileUiEvent.CreateFile(fileName))
+                viewModel.onEvent(FileUiEvent.FileOperation.CreateFile(fileName))
                 showCreateFileDialog = false
             },
             onCancel = {
@@ -172,7 +172,7 @@ fun FileHeader(viewModel: FileViewModel) {
             title = viewModel.getString("file.deleteAll"),
             message = viewModel.getString("file.deleteAll.confirm"),
             onConfirm = {
-                viewModel.onEvent(FileUiEvent.DeleteAllFiles)
+                viewModel.onEvent(FileUiEvent.FileOperation.DeleteAllFiles)
                 showDeleteAllDialog = false
             },
             onCancel = { showDeleteAllDialog = false }
@@ -396,7 +396,7 @@ private fun JumpToPathButton(
             icon = Icons.Default.ArrowOutward,
             text = viewModel.getString("file.jump"),
             onClick = {
-                viewModel.onEvent(FileUiEvent.JumpToClipboardPath)
+                viewModel.onEvent(FileUiEvent.Navigation.JumpToClipboardPath)
             }
         )
     }
@@ -412,7 +412,7 @@ private fun FavoritesButton(viewModel: FileViewModel) {
             icon = Icons.Default.Star,
             text = viewModel.getString("favorites.title"),
             onClick = {
-                viewModel.onEvent(FileUiEvent.RefreshFavorites)
+                viewModel.onEvent(FileUiEvent.Favorites.RefreshFavorites)
                 expanded = true
             }
         )
@@ -436,7 +436,7 @@ private fun FavoritesButton(viewModel: FileViewModel) {
                 uiState.favorites.forEach { path ->
                     DropdownMenuItem(
                         onClick = {
-                            viewModel.onEvent(FileUiEvent.NavigateToFavorite(path))
+                            viewModel.onEvent(FileUiEvent.Navigation.NavigateToFavorite(path))
                             expanded = false
                         }
                     ) {
@@ -453,7 +453,7 @@ private fun FavoritesButton(viewModel: FileViewModel) {
                             )
                             IconButton(
                                 onClick = {
-                                    viewModel.onEvent(FileUiEvent.ToggleFavorite(path))
+                                    viewModel.onEvent(FileUiEvent.Favorites.ToggleFavorite(path))
                                 },
                                 modifier = Modifier.size(24.dp)
                             ) {

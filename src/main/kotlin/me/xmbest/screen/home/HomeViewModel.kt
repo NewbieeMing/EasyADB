@@ -112,17 +112,41 @@ class HomeViewModel : BaseViewModel<HomeUiState>() {
     fun onEvent(event: HomeUiEvent) {
         viewModelScope.launch(Dispatchers.Default) {
             when (event) {
-                is HomeUiEvent.InputKey -> DeviceOperate.inputKey(event.key)
-                is HomeUiEvent.ExecuteAction -> handleAction(event.action)
-                is HomeUiEvent.ShowStatusbar -> DeviceOperate.controlStatusbar(true)
-                is HomeUiEvent.HideStatusbar -> DeviceOperate.controlStatusbar(false)
-                is HomeUiEvent.Reboot -> DeviceOperate.reboot()
-                is HomeUiEvent.OpenSettings -> DeviceOperate.openSettings()
-                is HomeUiEvent.OpenWifiAdb -> DeviceOperate.tcpip()
-                is HomeUiEvent.ScreenShot -> handleScreenShot()
-                is HomeUiEvent.FindCurrentActivity -> handleFindCurrentActivity()
-                is HomeUiEvent.ClearCurrentActivity -> handleClearCurrentActivity()
+                is HomeUiEvent.DeviceControl -> handleDeviceControlEvent(event)
+                is HomeUiEvent.AppOperation -> handleAppOperationEvent(event)
+                is HomeUiEvent.SystemFeature -> handleSystemFeatureEvent(event)
+                is HomeUiEvent.Action -> handleActionEvent(event)
             }
+        }
+    }
+
+    private suspend fun handleDeviceControlEvent(event: HomeUiEvent.DeviceControl) {
+        when (event) {
+            is HomeUiEvent.DeviceControl.InputKey -> DeviceOperate.inputKey(event.key)
+            is HomeUiEvent.DeviceControl.Reboot -> DeviceOperate.reboot()
+            is HomeUiEvent.DeviceControl.ShowStatusbar -> DeviceOperate.controlStatusbar(true)
+            is HomeUiEvent.DeviceControl.HideStatusbar -> DeviceOperate.controlStatusbar(false)
+        }
+    }
+
+    private suspend fun handleAppOperationEvent(event: HomeUiEvent.AppOperation) {
+        when (event) {
+            is HomeUiEvent.AppOperation.FindCurrentActivity -> handleFindCurrentActivity()
+            is HomeUiEvent.AppOperation.ClearCurrentActivity -> handleClearCurrentActivity()
+        }
+    }
+
+    private suspend fun handleSystemFeatureEvent(event: HomeUiEvent.SystemFeature) {
+        when (event) {
+            is HomeUiEvent.SystemFeature.OpenSettings -> DeviceOperate.openSettings()
+            is HomeUiEvent.SystemFeature.OpenWifiAdb -> DeviceOperate.tcpip()
+            is HomeUiEvent.SystemFeature.ScreenShot -> handleScreenShot()
+        }
+    }
+
+    private suspend fun handleActionEvent(event: HomeUiEvent.Action) {
+        when (event) {
+            is HomeUiEvent.Action.ExecuteAction -> handleAction(event.action)
         }
     }
 

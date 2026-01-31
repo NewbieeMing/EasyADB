@@ -69,7 +69,7 @@ fun Left(
                     if (index == uiState.index) MaterialTheme.colors.primary
                     else MaterialTheme.colors.background
                 ).clickable {
-                    viewModel.onEvent(NaviUiEvent.SelectLeftItem(index))
+                    viewModel.onEvent(NaviUiEvent.Navigation.SelectLeftItem(index))
                 }, icon = {
                     Icon(
                         item.icon, item.icon.name, tint = optionColor(index == uiState.index)
@@ -84,14 +84,14 @@ fun Left(
             modifier = Modifier.weight(1f).padding(bottom = 8.dp).fillMaxWidth(), verticalAlignment = Alignment.Bottom
         ) {
             ListItem(modifier = Modifier.height(44.dp).clip(RoundedCornerShape(8.dp)).clickable {
-                viewModel.onEvent(NaviUiEvent.ShowDeviceList(true))
+                viewModel.onEvent(NaviUiEvent.DeviceManagement.ShowDeviceList(true))
             }, icon = {
                 Icon(
                     Icons.Default.Phonelink,
                     contentDescription = "refresh devices",
                     tint = MaterialTheme.colors.onBackground,
                     modifier = Modifier.clickable {
-                        viewModel.onEvent(NaviUiEvent.RefreshDevice)
+                        viewModel.onEvent(NaviUiEvent.DeviceManagement.RefreshDevice)
                     })
             }) {
                 Text(
@@ -104,7 +104,7 @@ fun Left(
 
         DropdownMenu(
             expanded = uiState.devicesListShow, onDismissRequest = {
-                viewModel.onEvent(NaviUiEvent.ShowDeviceList(!uiState.devicesListShow))
+                viewModel.onEvent(NaviUiEvent.DeviceManagement.ShowDeviceList(!uiState.devicesListShow))
             }, modifier = Modifier.width(216.dp)
         ) {
             if (uiState.devices.isEmpty()) {
@@ -114,7 +114,7 @@ fun Left(
             } else {
                 uiState.devices.forEach {
                     DropdownMenuItem(onClick = {
-                        viewModel.onEvent(NaviUiEvent.SelectDevice(it))
+                        viewModel.onEvent(NaviUiEvent.DeviceManagement.SelectDevice(it))
                     }) {
                         Text(text = it.serialNumber)
                     }

@@ -36,7 +36,7 @@ fun ShellSendWidget(
                 value = text,
                 onValueChange = {
                     text = it
-                    onEvent(CustomerUiEvent.UpdateInputValue(data.uuid, it))
+                    onEvent(CustomerUiEvent.UI.UpdateInputValue(data.uuid, it))
                 },
                 modifier = Modifier
                     .fillMaxSize()
@@ -51,9 +51,9 @@ fun ShellSendWidget(
                             Button(
                                 onClick = {
                                     if (text.isNotBlank()) {
-                                        onEvent(CustomerUiEvent.ExecuteCommand(text))
+                                        onEvent(CustomerUiEvent.Command.Execute(text))
                                     } else {
-                                        onEvent(CustomerUiEvent.Toast(data.hintText))
+                                        onEvent(CustomerUiEvent.UI.Toast(data.hintText))
                                     }
                                 },
                                 modifier = Modifier.padding(end = 6.dp),

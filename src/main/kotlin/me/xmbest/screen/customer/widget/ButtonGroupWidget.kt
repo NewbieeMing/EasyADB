@@ -28,7 +28,7 @@ fun ButtonGroupWidget(
                         commands.forEach { cmd ->
                             val trimmedCmd = cmd.trim()
                             if (trimmedCmd.isNotEmpty()) {
-                                onEvent(CustomerUiEvent.ExecuteCommand(trimmedCmd))
+                                onEvent(CustomerUiEvent.Command.Execute(trimmedCmd))
                             }
                         }
                     },

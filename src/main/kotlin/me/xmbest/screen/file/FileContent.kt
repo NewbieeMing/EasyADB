@@ -70,7 +70,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
             .combinedClickable(onDoubleClick = {
                 if (file.isDirectory) {
                     viewModel.onEvent(
-                        FileUiEvent.NavigateToPath(
+                        FileUiEvent.Navigation.NavigateToPath(
                             viewModel.calculatePath(
                                 uiState.parentPath,
                                 file.name
@@ -172,7 +172,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
                 ) {
                     IconButton(
                         onClick = {
-                            viewModel.onEvent(FileUiEvent.ToggleFavorite(file.absolutePath))
+                            viewModel.onEvent(FileUiEvent.Favorites.ToggleFavorite(file.absolutePath))
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
@@ -214,7 +214,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
                 ) {
                     IconButton(
                         onClick = {
-                            viewModel.onEvent(FileUiEvent.DownloadFiles(listOf(file)))
+                            viewModel.onEvent(FileUiEvent.FileOperation.DownloadFiles(listOf(file)))
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
@@ -239,7 +239,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
                                 dialogState = dialogState,
                                 message = viewModel.getString("file.delete.confirm").format(file.absolutePath),
                                 onConfirm = {
-                                    viewModel.onEvent(FileUiEvent.DeleteFiles(listOf(file)))
+                                    viewModel.onEvent(FileUiEvent.FileOperation.DeleteFiles(listOf(file)))
                                 },
                                 onCancel = {}
                             )
@@ -265,7 +265,7 @@ fun FileContent(file: FileListingService.FileEntry, viewModel: FileViewModel) {
             title = viewModel.getString("file.rename"),
             currentName = file.name,
             onConfirm = { newName ->
-                viewModel.onEvent(FileUiEvent.RenameFile(file.absolutePath, newName))
+                viewModel.onEvent(FileUiEvent.FileOperation.RenameFile(file.absolutePath, newName))
                 showRenameDialog = false
             },
             onCancel = {

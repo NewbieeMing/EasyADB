@@ -37,7 +37,7 @@ fun CustomerScreen() {
     LaunchedEffect(uiState.toast) {
         if (uiState.toast.isNotEmpty()) {
             snackbarHostState.showSnackbar(uiState.toast, viewModel.getString("button.confirm"))
-            viewModel.onEvent(CustomerUiEvent.Toast(""))
+            viewModel.onEvent(CustomerUiEvent.UI.Toast(""))
         }
     }
 
@@ -75,7 +75,7 @@ fun CustomerScreen() {
                     }
                 ) {
                     IconButton(
-                        onClick = { viewModel.onEvent(CustomerUiEvent.ExportConfig) }
+                        onClick = { viewModel.onEvent(CustomerUiEvent.Config.Export) }
                     ) {
                         Icon(
                             Icons.Outlined.Download,
@@ -103,7 +103,7 @@ fun CustomerScreen() {
                     }
                 ) {
                     IconButton(
-                        onClick = { viewModel.onEvent(CustomerUiEvent.ImportConfig) }
+                        onClick = { viewModel.onEvent(CustomerUiEvent.Config.Import) }
                     ) {
                         Icon(
                             Icons.Outlined.Upload,
@@ -131,7 +131,7 @@ fun CustomerScreen() {
                     }
                 ) {
                     IconButton(
-                        onClick = { viewModel.onEvent(CustomerUiEvent.Refresh) }
+                        onClick = { viewModel.onEvent(CustomerUiEvent.Config.Refresh) }
                     ) {
                         Icon(
                             Icons.Outlined.Refresh,

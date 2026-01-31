@@ -142,7 +142,7 @@ private fun FileScreenContent(viewModel: FileViewModel) {
         FilterBottomBar(
             viewModel,
             filterStr = uiState.filterStr,
-            onClearFilter = { viewModel.onEvent(FileUiEvent.UpdateFilter("")) },
+            onClearFilter = { viewModel.onEvent(FileUiEvent.UI.UpdateFilter("")) },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -153,13 +153,13 @@ private fun FileScreenSideEffects(viewModel: FileViewModel, uiState: FileUiState
     val snackbarHostState = LocalSnackbarHostState.current
 
     LaunchedEffect(Unit) {
-        viewModel.onEvent(FileUiEvent.Refresh)
+        viewModel.onEvent(FileUiEvent.Navigation.Refresh)
     }
 
     LaunchedEffect(uiState.toast) {
         if (uiState.toast.isNotEmpty()) {
             snackbarHostState.showSnackbar(uiState.toast, viewModel.getString("button.confirm"))
-            viewModel.onEvent(FileUiEvent.Toast(""))
+            viewModel.onEvent(FileUiEvent.UI.Toast(""))
         }
     }
 }
@@ -169,17 +169,17 @@ private fun rememberDragAndDropTarget(viewModel: FileViewModel): DragAndDropTarg
     return remember(viewModel) {
         object : DragAndDropTarget {
             override fun onStarted(event: DragAndDropEvent) {
-                viewModel.onEvent(FileUiEvent.StartDrag)
+                viewModel.onEvent(FileUiEvent.Drag.StartDrag)
             }
 
             override fun onEnded(event: DragAndDropEvent) {
-                viewModel.onEvent(FileUiEvent.DragEnd)
+                viewModel.onEvent(FileUiEvent.Drag.DragEnd)
             }
 
             override fun onDrop(event: DragAndDropEvent): Boolean {
                 val files = extractFilesFromEvent(event)
                 if (files.isNotEmpty()) {
-                    viewModel.onEvent(FileUiEvent.UploadFiles(files))
+                    viewModel.onEvent(FileUiEvent.FileOperation.UploadFiles(files))
                     return true
                 }
                 return false
@@ -210,19 +210,19 @@ private fun setKeyEvent(viewModel: FileViewModel, uiState: FileUiState, event: K
         return when (keyCode) {
             Key.C.keyCode -> {
                 ClipboardUtil.setSysClipboardText(uiState.parentPath)
-                viewModel.onEvent(FileUiEvent.Toast(viewModel.getString("file.copyPath.success")))
+                viewModel.onEvent(FileUiEvent.UI.Toast(viewModel.getString("file.copyPath.success")))
                 true
             }
 
             Key.V.keyCode -> {
                 // 粘贴路径跳转功能
-                viewModel.onEvent(FileUiEvent.JumpToClipboardPath)
+                viewModel.onEvent(FileUiEvent.Navigation.JumpToClipboardPath)
                 true
             }
 
             Key.R.keyCode -> {
                 // Ctrl+R 刷新
-                viewModel.onEvent(FileUiEvent.Refresh)
+                viewModel.onEvent(FileUiEvent.Navigation.Refresh)
                 true
             }
 
@@ -233,7 +233,7 @@ private fun setKeyEvent(viewModel: FileViewModel, uiState: FileUiState, event: K
     // 处理功能键
     return when (keyCode) {
         Key.F5.keyCode -> {
-            viewModel.onEvent(FileUiEvent.Refresh)
+            viewModel.onEvent(FileUiEvent.Navigation.Refresh)
             true
         }
 
@@ -250,14 +250,14 @@ private fun setKeyEvent(viewModel: FileViewModel, uiState: FileUiState, event: K
         in Key.A.keyCode..Key.Z.keyCode -> {
             // 字母键用于过滤
             val char = Char(event.key.nativeKeyCode).lowercase()
-            viewModel.onEvent(FileUiEvent.UpdateFilter(uiState.filterStr + char))
+            viewModel.onEvent(FileUiEvent.UI.UpdateFilter(uiState.filterStr + char))
             true
         }
 
         in Key.Zero.keyCode..Key.Nine.keyCode -> {
             // 数字键也可用于过滤
             val char = Char(event.key.nativeKeyCode)
-            viewModel.onEvent(FileUiEvent.UpdateFilter(uiState.filterStr + char))
+            viewModel.onEvent(FileUiEvent.UI.UpdateFilter(uiState.filterStr + char))
             true
         }
 
@@ -271,10 +271,10 @@ private fun setKeyEvent(viewModel: FileViewModel, uiState: FileUiState, event: K
 private fun handleEscapeKey(viewModel: FileViewModel, uiState: FileUiState) {
     if (uiState.filterStr.isNotBlank()) {
         // 如果有过滤条件，先清除过滤
-        viewModel.onEvent(FileUiEvent.UpdateFilter(""))
+        viewModel.onEvent(FileUiEvent.UI.UpdateFilter(""))
     } else {
         // 否则返回上级目录
-        viewModel.onEvent(FileUiEvent.NavigateToPath(getParentPath(uiState.parentPath)))
+        viewModel.onEvent(FileUiEvent.Navigation.NavigateToPath(getParentPath(uiState.parentPath)))
     }
 }
 
@@ -284,10 +284,10 @@ private fun handleEscapeKey(viewModel: FileViewModel, uiState: FileUiState) {
 private fun handleBackspaceKey(viewModel: FileViewModel, uiState: FileUiState) {
     if (uiState.filterStr.isNotBlank()) {
         // 如果有过滤条件，删除最后一个字符
-        viewModel.onEvent(FileUiEvent.UpdateFilter(uiState.filterStr.dropLast(1)))
+        viewModel.onEvent(FileUiEvent.UI.UpdateFilter(uiState.filterStr.dropLast(1)))
     } else {
         // 否则返回上级目录
-        viewModel.onEvent(FileUiEvent.NavigateToPath(getParentPath(uiState.parentPath)))
+        viewModel.onEvent(FileUiEvent.Navigation.NavigateToPath(getParentPath(uiState.parentPath)))
     }
 }
 

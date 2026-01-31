@@ -64,15 +64,45 @@ class SettingsViewModel : BaseViewModel<SettingsUiState>() {
     fun onEvent(event: SettingsUiEvent) {
         viewModelScope.launch(Dispatchers.Default) {
             when (event) {
-                is SettingsUiEvent.UpdateTheme -> changeTheme(event.theme)
-                is SettingsUiEvent.UpdateAdbEnv -> changeAdbEnv(event.environment)
-                is SettingsUiEvent.UpdateScreenshotSaveEnabled -> changeScreenshotSaveEnabled(event.enabled)
-                is SettingsUiEvent.UpdateCmdAutoCloseEnabled -> changeCmdAutoCloseEnabled(event.enabled)
-                is SettingsUiEvent.UpdateCmdAutoCloseTimeout -> changeCmdAutoCloseTimeout(event.seconds)
-                is SettingsUiEvent.UpdateCustomerAdb -> changeCustomerAdb()
-                is SettingsUiEvent.UpdateScreenshotSavePath -> changeScreenshotSavePath()
-                is SettingsUiEvent.ClearData -> clearData()
+                is SettingsUiEvent.ThemeSettings -> handleThemeSettingsEvent(event)
+                is SettingsUiEvent.AdbSettings -> handleAdbSettingsEvent(event)
+                is SettingsUiEvent.ScreenshotSettings -> handleScreenshotSettingsEvent(event)
+                is SettingsUiEvent.TerminalSettings -> handleTerminalSettingsEvent(event)
+                is SettingsUiEvent.DataManagement -> handleDataManagementEvent(event)
             }
+        }
+    }
+
+    private fun handleThemeSettingsEvent(event: SettingsUiEvent.ThemeSettings) {
+        when (event) {
+            is SettingsUiEvent.ThemeSettings.UpdateTheme -> changeTheme(event.theme)
+        }
+    }
+
+    private suspend fun handleAdbSettingsEvent(event: SettingsUiEvent.AdbSettings) {
+        when (event) {
+            is SettingsUiEvent.AdbSettings.UpdateAdbEnv -> changeAdbEnv(event.environment)
+            is SettingsUiEvent.AdbSettings.UpdateCustomerAdb -> changeCustomerAdb()
+        }
+    }
+
+    private suspend fun handleScreenshotSettingsEvent(event: SettingsUiEvent.ScreenshotSettings) {
+        when (event) {
+            is SettingsUiEvent.ScreenshotSettings.UpdateScreenshotSaveEnabled -> changeScreenshotSaveEnabled(event.enabled)
+            is SettingsUiEvent.ScreenshotSettings.UpdateScreenshotSavePath -> changeScreenshotSavePath()
+        }
+    }
+
+    private fun handleTerminalSettingsEvent(event: SettingsUiEvent.TerminalSettings) {
+        when (event) {
+            is SettingsUiEvent.TerminalSettings.UpdateCmdAutoCloseEnabled -> changeCmdAutoCloseEnabled(event.enabled)
+            is SettingsUiEvent.TerminalSettings.UpdateCmdAutoCloseTimeout -> changeCmdAutoCloseTimeout(event.seconds)
+        }
+    }
+
+    private fun handleDataManagementEvent(event: SettingsUiEvent.DataManagement) {
+        when (event) {
+            is SettingsUiEvent.DataManagement.ClearData -> clearData()
         }
     }
 

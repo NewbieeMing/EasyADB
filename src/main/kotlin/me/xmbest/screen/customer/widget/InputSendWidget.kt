@@ -31,9 +31,9 @@ fun InputSendWidget(
         {
             if (text.isNotBlank()) {
                 val cmd = data.cmd.replace(data.template, text).trim()
-                onEvent(CustomerUiEvent.ExecuteCommand(cmd))
+                onEvent(CustomerUiEvent.Command.Execute(cmd))
             } else {
-                onEvent(CustomerUiEvent.Toast(data.hint))
+                onEvent(CustomerUiEvent.UI.Toast(data.hint))
             }
         }
     }
@@ -41,14 +41,14 @@ fun InputSendWidget(
     val clearText = remember {
         {
             text = ""
-            onEvent(CustomerUiEvent.UpdateInputValue(data.uuid, ""))
+            onEvent(CustomerUiEvent.UI.UpdateInputValue(data.uuid, ""))
         }
     }
 
     val updateText = remember {
         { newText: String ->
             text = newText
-            onEvent(CustomerUiEvent.UpdateInputValue(data.uuid, newText))
+            onEvent(CustomerUiEvent.UI.UpdateInputValue(data.uuid, newText))
         }
     }
 

@@ -57,13 +57,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         val filtered = value.filter { it.isDigit() }
         cmdAutoCloseTimeout = filtered
         filtered.toIntOrNull()?.let { seconds ->
-            viewModel.onEvent(SettingsUiEvent.UpdateCmdAutoCloseTimeout(seconds))
+            viewModel.onEvent(SettingsUiEvent.TerminalSettings.UpdateCmdAutoCloseTimeout(seconds))
         }
     }
 
     LaunchedEffect(uiState.customerAdbPath) {
         if (uiState.customerAdbPath != Environment.Custom.path) {
-            viewModel.onEvent(SettingsUiEvent.UpdateAdbEnv(Environment.Custom))
+            viewModel.onEvent(SettingsUiEvent.AdbSettings.UpdateAdbEnv(Environment.Custom))
         }
     }
     LaunchedEffect(uiState.cmdAutoCloseTimeoutSeconds) {
@@ -76,15 +76,15 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 title = viewModel.getString("theme.setting"),
                 themeList = Config.themeList,
                 selectedTheme = uiState.theme,
-                onThemeSelected = { viewModel.onEvent(SettingsUiEvent.UpdateTheme(it)) })
+                onThemeSelected = { viewModel.onEvent(SettingsUiEvent.ThemeSettings.UpdateTheme(it)) })
 
             AdbConfigSection(
                 title = viewModel.getString("adb.config"),
                 envList = Config.envList,
                 selectedPath = uiState.adbPath,
                 customerPath = uiState.customerAdbPath,
-                onEnvSelected = { viewModel.onEvent(SettingsUiEvent.UpdateAdbEnv(it)) },
-                onCustomerChange = { viewModel.onEvent(SettingsUiEvent.UpdateCustomerAdb) })
+                onEnvSelected = { viewModel.onEvent(SettingsUiEvent.AdbSettings.UpdateAdbEnv(it)) },
+                onCustomerChange = { viewModel.onEvent(SettingsUiEvent.AdbSettings.UpdateCustomerAdb) })
 
             WindowSizeSection(
                 title = viewModel.getString("settings.window.size"),
@@ -139,14 +139,14 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 cmdAutoCloseEnabled = uiState.cmdAutoCloseEnabled,
                 cmdAutoCloseTimeout = cmdAutoCloseTimeout,
                 onScreenshotEnabledChange = { enabled ->
-                    viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSaveEnabled(enabled))
+                    viewModel.onEvent(SettingsUiEvent.ScreenshotSettings.UpdateScreenshotSaveEnabled(enabled))
                 },
-                onScreenshotPathChange = { viewModel.onEvent(SettingsUiEvent.UpdateScreenshotSavePath) },
+                onScreenshotPathChange = { viewModel.onEvent(SettingsUiEvent.ScreenshotSettings.UpdateScreenshotSavePath) },
                 onCmdAutoCloseEnabledChange = { enabled ->
-                    viewModel.onEvent(SettingsUiEvent.UpdateCmdAutoCloseEnabled(enabled))
+                    viewModel.onEvent(SettingsUiEvent.TerminalSettings.UpdateCmdAutoCloseEnabled(enabled))
                 },
                 onCmdAutoCloseTimeoutChange = onCmdAutoCloseTimeoutChange,
-                onClearData = { viewModel.onEvent(SettingsUiEvent.ClearData) },
+                onClearData = { viewModel.onEvent(SettingsUiEvent.DataManagement.ClearData) },
                 dialogState = dialogState
             )
         }

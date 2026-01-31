@@ -75,9 +75,9 @@ fun AppScreen(viewModel: AppViewModel = viewModel()) {
     val uiState = viewModel.uiState.collectAsState().value
 
     DisposableEffect(UInt) {
-        viewModel.onEvent(AppUiEvent.Show)
+        viewModel.onEvent(AppUiEvent.Lifecycle.Show)
         onDispose {
-            viewModel.onEvent(AppUiEvent.Dispose)
+            viewModel.onEvent(AppUiEvent.Lifecycle.Dispose)
         }
     }
 
@@ -228,7 +228,7 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
             tint = green_primary,
             iconSize = 24.dp
         ) {
-            viewModel.onEvent(AppUiEvent.StartApp(appInfo.packageName))
+            viewModel.onEvent(AppUiEvent.AppOperation.StartApp(appInfo.packageName))
         },
         AppAction(
             tooltip = forceStopTooltip,
@@ -236,7 +236,7 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
             tint = yellow_primary,
             iconSize = 20.dp
         ) {
-            viewModel.onEvent(AppUiEvent.ForceStop(appInfo.packageName))
+            viewModel.onEvent(AppUiEvent.AppOperation.ForceStop(appInfo.packageName))
         },
         AppAction(
             tooltip = clearTooltip,
@@ -248,7 +248,7 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
                 dialogState = dialogState,
                 message = clearConfirmText.format(appInfo.packageName),
                 onConfirm = {
-                    viewModel.onEvent(AppUiEvent.ClearData(appInfo.packageName))
+                    viewModel.onEvent(AppUiEvent.AppOperation.ClearData(appInfo.packageName))
                 },
                 onCancel = {}
             )
@@ -263,7 +263,7 @@ fun AppItem(appInfo: AppInfo, viewModel: AppViewModel = viewModel()) {
                 dialogState = dialogState,
                 message = uninstallConfirmText.format(appInfo.packageName),
                 onConfirm = {
-                    viewModel.onEvent(AppUiEvent.Uninstall(appInfo.packageName))
+                    viewModel.onEvent(AppUiEvent.AppOperation.Uninstall(appInfo.packageName))
                 },
                 onCancel = {}
             )
@@ -399,7 +399,7 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
         Row(Modifier.weight(1.5f), horizontalArrangement = Arrangement.SpaceBetween) {
             if (isHovered) {
                 IconButton(onClick = {
-                    viewModel.onEvent(AppUiEvent.Kill(listOf(process.pid)))
+                    viewModel.onEvent(AppUiEvent.AppOperation.Kill(listOf(process.pid)))
                 }) {
                     TooltipArea({ Text(viewModel.getString("app.kill")) }) {
                         Icon(
@@ -411,7 +411,7 @@ fun ProcessItem(process: ProcessInfo, viewModel: AppViewModel = viewModel()) {
                     }
                 }
                 IconButton(onClick = {
-                    viewModel.onEvent(AppUiEvent.ForceStop(process.name))
+                    viewModel.onEvent(AppUiEvent.AppOperation.ForceStop(process.name))
                 }) {
                     TooltipArea({ Text(viewModel.getString("app.forceStop")) }) {
                         Icon(
@@ -438,11 +438,11 @@ fun HeaderTool(viewModel: AppViewModel, uiState: AppUiState) {
             query = uiState.filter,
             onQueryChange = {
                 Log.d("", "onQueryChange $it")
-                viewModel.onEvent(AppUiEvent.ChangeFilter(it))
+                viewModel.onEvent(AppUiEvent.Settings.ChangeFilter(it))
             },
             onSearch = {
                 Log.d("", "onSearch $it")
-                viewModel.onEvent(AppUiEvent.ChangeFilter(it))
+                viewModel.onEvent(AppUiEvent.Settings.ChangeFilter(it))
             },
             expanded = false,
             onExpandedChange = { },
@@ -458,7 +458,7 @@ fun HeaderTool(viewModel: AppViewModel, uiState: AppUiState) {
             trailingIcon = {
                 if (uiState.filter.isNotEmpty()) {
                     IconButton(
-                        onClick = { viewModel.onEvent(AppUiEvent.ChangeFilter("")) },
+                        onClick = { viewModel.onEvent(AppUiEvent.Settings.ChangeFilter("")) },
                         modifier = Modifier.size(48.dp).clip(CircleShape)
                             .background(MaterialTheme.colors.surface)
                     ) {

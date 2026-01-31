@@ -42,13 +42,31 @@ class CustomerViewModel : BaseViewModel<CustomerUiState>() {
     fun onEvent(event: CustomerUiEvent) {
         viewModelScope.launch(Dispatchers.Default) {
             when (event) {
-                is CustomerUiEvent.Refresh -> loadConfig()
-                is CustomerUiEvent.ExportConfig -> handleExportConfig()
-                is CustomerUiEvent.ImportConfig -> handleImportConfig()
-                is CustomerUiEvent.ExecuteCommand -> handleExecuteCommand(event.cmd)
-                is CustomerUiEvent.UpdateInputValue -> handleUpdateInputValue(event.uuid, event.value)
-                is CustomerUiEvent.Toast -> handleToast(event.message)
+                is CustomerUiEvent.Config -> handleConfigEvent(event)
+                is CustomerUiEvent.Command -> handleCommandEvent(event)
+                is CustomerUiEvent.UI -> handleUIEvent(event)
             }
+        }
+    }
+
+    private suspend fun handleConfigEvent(event: CustomerUiEvent.Config) {
+        when (event) {
+            is CustomerUiEvent.Config.Refresh -> loadConfig()
+            is CustomerUiEvent.Config.Export -> handleExportConfig()
+            is CustomerUiEvent.Config.Import -> handleImportConfig()
+        }
+    }
+
+    private suspend fun handleCommandEvent(event: CustomerUiEvent.Command) {
+        when (event) {
+            is CustomerUiEvent.Command.Execute -> handleExecuteCommand(event.cmd)
+        }
+    }
+
+    private fun handleUIEvent(event: CustomerUiEvent.UI) {
+        when (event) {
+            is CustomerUiEvent.UI.UpdateInputValue -> handleUpdateInputValue(event.uuid, event.value)
+            is CustomerUiEvent.UI.Toast -> handleToast(event.message)
         }
     }
 

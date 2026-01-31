@@ -77,31 +77,56 @@ class FileViewModel : BaseViewModel<FileUiState>() {
     fun onEvent(event: FileUiEvent) {
         viewModelScope.launch(Dispatchers.Default) {
             when (event) {
-                is FileUiEvent.NavigateToPath -> navigateToPath(event.path)
-                is FileUiEvent.Refresh -> refreshCurrentDirectory()
-                is FileUiEvent.StartDrag -> handleStartDrag()
-                is FileUiEvent.DragEnd -> handleDragEnd()
-                is FileUiEvent.Imported -> handleImported()
-                is FileUiEvent.UploadFiles -> handleUploadFiles(
-                    event.files,
-                    uiState.value.parentPath
-                )
-
-                is FileUiEvent.DownloadFiles -> handleDownloadFiles(event.files)
-                is FileUiEvent.DeleteFiles -> handleDeleteFiles(event.files)
-                is FileUiEvent.DeleteAllFiles -> handleDeleteAllFiles()
-                is FileUiEvent.CreateFolder -> handleCreateFolder(event.folderName)
-                is FileUiEvent.CreateFile -> handleCreateFile(event.fileName)
-                is FileUiEvent.RenameFile -> handleRenameFile(event.oldPath, event.newName)
-                is FileUiEvent.Toast -> handleToast(event.message)
-                is FileUiEvent.JumpToClipboardPath -> handleJumpToClipboardPath()
-                is FileUiEvent.UpdateFilter -> handleUpdateFilterWithDebounce(event.filter)
-                is FileUiEvent.ToggleFavorite -> handleToggleFavorite(event.filePath)
-                is FileUiEvent.RefreshFavorites -> handleRefreshFavorites()
-                is FileUiEvent.NavigateToFavorite -> handleNavigateToFavorite(event.favoritePath)
+                is FileUiEvent.Navigation -> handleNavigationEvent(event)
+                is FileUiEvent.FileOperation -> handleFileOperationEvent(event)
+                is FileUiEvent.Drag -> handleDragEvent(event)
+                is FileUiEvent.Favorites -> handleFavoritesEvent(event)
+                is FileUiEvent.UI -> handleUIEvent(event)
             }
         }
+    }
 
+    private suspend fun handleNavigationEvent(event: FileUiEvent.Navigation) {
+        when (event) {
+            is FileUiEvent.Navigation.Refresh -> refreshCurrentDirectory()
+            is FileUiEvent.Navigation.NavigateToPath -> navigateToPath(event.path)
+            is FileUiEvent.Navigation.JumpToClipboardPath -> handleJumpToClipboardPath()
+            is FileUiEvent.Navigation.NavigateToFavorite -> handleNavigateToFavorite(event.favoritePath)
+        }
+    }
+
+    private suspend fun handleFileOperationEvent(event: FileUiEvent.FileOperation) {
+        when (event) {
+            is FileUiEvent.FileOperation.Imported -> handleImported()
+            is FileUiEvent.FileOperation.UploadFiles -> handleUploadFiles(event.files, uiState.value.parentPath)
+            is FileUiEvent.FileOperation.DownloadFiles -> handleDownloadFiles(event.files)
+            is FileUiEvent.FileOperation.DeleteFiles -> handleDeleteFiles(event.files)
+            is FileUiEvent.FileOperation.DeleteAllFiles -> handleDeleteAllFiles()
+            is FileUiEvent.FileOperation.CreateFolder -> handleCreateFolder(event.folderName)
+            is FileUiEvent.FileOperation.CreateFile -> handleCreateFile(event.fileName)
+            is FileUiEvent.FileOperation.RenameFile -> handleRenameFile(event.oldPath, event.newName)
+        }
+    }
+
+    private fun handleDragEvent(event: FileUiEvent.Drag) {
+        when (event) {
+            is FileUiEvent.Drag.StartDrag -> handleStartDrag()
+            is FileUiEvent.Drag.DragEnd -> handleDragEnd()
+        }
+    }
+
+    private fun handleFavoritesEvent(event: FileUiEvent.Favorites) {
+        when (event) {
+            is FileUiEvent.Favorites.ToggleFavorite -> handleToggleFavorite(event.filePath)
+            is FileUiEvent.Favorites.RefreshFavorites -> handleRefreshFavorites()
+        }
+    }
+
+    private fun handleUIEvent(event: FileUiEvent.UI) {
+        when (event) {
+            is FileUiEvent.UI.Toast -> handleToast(event.message)
+            is FileUiEvent.UI.UpdateFilter -> handleUpdateFilterWithDebounce(event.filter)
+        }
     }
 
     fun calculatePath(parentPath: String, fileName: String): String {

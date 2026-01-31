@@ -39,35 +39,35 @@ class AppViewModel : BaseViewModel<AppUiState>() {
                         isSelected = { false },
                         isShow = { true },
                         onClick = {
-                            onEvent(AppUiEvent.ChangeFilter(null))
+                            onEvent(AppUiEvent.Settings.ChangeFilter(null))
                         }), ButtonInfo(
                         icon = Icons.Filled.HdrAuto,
                         description = getString("app.autoRefresh"),
                         isSelected = { uiState.value.auto },
                         isShow = { uiState.value.mode == AppShowMode.ProcessMode },
                         onClick = {
-                            onEvent(AppUiEvent.ChangeAuto)
+                            onEvent(AppUiEvent.Settings.ChangeAuto)
                         }), ButtonInfo(
                         icon = Icons.Filled.Looks3,
                         description = getString("app.thirdParty"),
                         isSelected = { uiState.value.third },
                         isShow = { uiState.value.mode == AppShowMode.AppMode },
                         onClick = {
-                            onEvent(AppUiEvent.ChangeThird)
+                            onEvent(AppUiEvent.Settings.ChangeThird)
                         }), ButtonInfo(
                         icon = Icons.Filled.Android,
                         description = getString("app.appList"),
                         isSelected = { uiState.value.mode == AppShowMode.AppMode },
                         isShow = { true },
                         onClick = {
-                            onEvent(AppUiEvent.ChangeAppMode(AppShowMode.AppMode))
+                            onEvent(AppUiEvent.Settings.ChangeAppMode(AppShowMode.AppMode))
                         }), ButtonInfo(
                         icon = Icons.Filled.Workspaces,
                         description = getString("app.processList"),
                         isSelected = { uiState.value.mode == AppShowMode.ProcessMode },
                         isShow = { true },
                         onClick = {
-                            onEvent(AppUiEvent.ChangeAppMode(AppShowMode.ProcessMode))
+                            onEvent(AppUiEvent.Settings.ChangeAppMode(AppShowMode.ProcessMode))
                         })
                 )
             )
@@ -80,18 +80,36 @@ class AppViewModel : BaseViewModel<AppUiState>() {
     fun onEvent(event: AppUiEvent) {
         viewModelScope.launch(Dispatchers.IO) {
             when (event) {
-                is AppUiEvent.ChangeFilter -> updateFilter(event.filter)
-                is AppUiEvent.ChangeAuto -> updateAuto()
-                is AppUiEvent.ChangeThird -> updateThird()
-                is AppUiEvent.ChangeAppMode -> updateAppMode(event.mode)
-                is AppUiEvent.Show -> show()
-                is AppUiEvent.Dispose -> dispose()
-                is AppUiEvent.Kill -> kill(event.pids)
-                is AppUiEvent.ForceStop -> forceStop(event.applicationId)
-                is AppUiEvent.StartApp -> startApp(event.packageName)
-                is AppUiEvent.ClearData -> clear(event.packageName)
-                is AppUiEvent.Uninstall -> uninstall(event.packageName)
+                is AppUiEvent.Settings -> handleSettingsEvent(event)
+                is AppUiEvent.Lifecycle -> handleLifecycleEvent(event)
+                is AppUiEvent.AppOperation -> handleAppOperationEvent(event)
             }
+        }
+    }
+
+    private fun handleSettingsEvent(event: AppUiEvent.Settings) {
+        when (event) {
+            is AppUiEvent.Settings.ChangeFilter -> updateFilter(event.filter)
+            is AppUiEvent.Settings.ChangeAuto -> updateAuto()
+            is AppUiEvent.Settings.ChangeThird -> updateThird()
+            is AppUiEvent.Settings.ChangeAppMode -> updateAppMode(event.mode)
+        }
+    }
+
+    private fun handleLifecycleEvent(event: AppUiEvent.Lifecycle) {
+        when (event) {
+            is AppUiEvent.Lifecycle.Show -> show()
+            is AppUiEvent.Lifecycle.Dispose -> dispose()
+        }
+    }
+
+    private suspend fun handleAppOperationEvent(event: AppUiEvent.AppOperation) {
+        when (event) {
+            is AppUiEvent.AppOperation.Kill -> kill(event.pids)
+            is AppUiEvent.AppOperation.ForceStop -> forceStop(event.applicationId)
+            is AppUiEvent.AppOperation.StartApp -> startApp(event.packageName)
+            is AppUiEvent.AppOperation.ClearData -> clear(event.packageName)
+            is AppUiEvent.AppOperation.Uninstall -> uninstall(event.packageName)
         }
     }
 
